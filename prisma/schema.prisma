@@ -1,0 +1,400 @@
+// Solace — database schema.
+//
+// Solace is an accountability layer for fuel poverty spending. This schema holds
+// everything that must NOT go on chain: household identities, meter readings,
+// council case notes, and the mapping from an on-chain recipient hash back to a
+// real household. The chain holds only hashes and quantities.
+//
+// Three conventions run through this file, and they are deliberate:
+//
+//   1. Money is stored in whole pence as `Int`. Never as a float. A rounding
+//      error in a public accountability ledger is not a rounding error, it is a
+//      discrepancy someone has to explain at a scrutiny committee.
+//
+//   2. There are no Prisma `enum` declarations, because SQLite does not support
+//      them. Fields that are conceptually enums are `String`, and the permitted
+//      values live in `src/lib/domain.ts` as `as const` objects so TypeScript
+//      still narrows them. Each such field notes its value set below.
+//
+//   3. Structured blobs (engine reasoning, parsed need signals, report facts)
+//      are stored as JSON in a `String` column rather than a native JSON type.
+//      SQLite's JSON support varies by build; a string is portable and the
+//      helpers in `src/lib/domain.ts` handle parsing.
+//
+// Primary keys are explicit strings with no database-side default. The
+// allocation engine must be reproducible: given the same inputs it produces
+// byte-identical output, and that is impossible if the database mints a random
+// identifier for every row. Identifiers are derived deterministically instead.
+
+// `importFileExtension = "ts"` makes the generated client emit fully-specified
+// relative imports. That lets plain `node` run the seed script and the engine
+// tests directly, using Node's built-in TypeScript support, with no bundler and
+// no extra test-runner dependency in the way.
+generator client {
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  moduleFormat        = "esm"
+  importFileExtension = "ts"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// ---------------------------------------------------------------------------
+// The council's money
+// ---------------------------------------------------------------------------
+
+/// A ring-fenced pot of council money, for example a winter support fund drawn
+/// from the Household Support Fund. The demo universe has exactly one.
+///
+/// The pot's balance is deliberately NOT stored as a column. It is derived as
+/// (confirmed deposits − settled allocations) so that the figure on the
+/// dashboard can never drift from the ledger it claims to summarise.
+model Pot {
+  id String @id
+
+  /// Short public identifier, also written on chain as the pot reference on
+  /// every settlement, e.g. "WINTER-2026". Carries no personal data.
+  reference String @unique
+
+  name          String
+  councilName   String
+  /// The funding stream this pot draws on, e.g. "Household Support Fund".
+  fundingSource String
+
+  createdAt DateTime @default(now())
+
+  deposits    Deposit[]
+  runs        AllocationRun[]
+  allocations Allocation[]
+  reports     Report[]
+}
+
+/// A council payment into a pot. Beat one of the demo: this confirms on screen.
+model Deposit {
+  id    String @id
+  potId String
+  pot   Pot    @relation(fields: [potId], references: [id], onDelete: Cascade)
+
+  amountPence Int
+  /// The council's own payment reference, so a finance officer can reconcile
+  /// this against their ledger.
+  reference   String
+  depositedAt DateTime
+
+  /// One of ChainName in src/lib/domain.ts.
+  chain       String
+  /// One of SettlementStatus in src/lib/domain.ts.
+  status      String
+  txHash      String?
+  blockNumber Int?
+  explorerUrl String?
+
+  createdAt DateTime @default(now())
+
+  @@index([potId, depositedAt])
+}
+
+// ---------------------------------------------------------------------------
+// Households
+// ---------------------------------------------------------------------------
+
+/// A household in the demo universe: either a solar exporter or a recipient.
+///
+/// Both roles share a table because they share a physical identity — an address
+/// with a meter and a location. The role-specific columns are nullable and
+/// documented as such.
+///
+/// PRIVACY: nothing in this table ever reaches the chain. Only `recipientHash`
+/// does, and it is an HMAC, not a plain hash — see src/lib/privacy.ts. The
+/// mapping from hash back to household exists here and nowhere else.
+model Household {
+  id String @id
+
+  /// Internal reference such as "SOL-01" or "REC-03". This is the pre-image
+  /// that gets HMAC'd for on-chain use; it is not personal data itself.
+  reference String @unique
+
+  /// One of HouseholdRole in src/lib/domain.ts: EXPORTER or RECIPIENT.
+  role String
+
+  /// A non-identifying label for the dashboard. Deliberately not an address.
+  displayName String
+  /// Ward or neighbourhood name, used for the proximity constraint and for
+  /// giving a councillor a sense of place without naming a street.
+  locality    String
+  latitude    Float
+  longitude   Float
+
+  // -- Exporter-only ------------------------------------------------------
+
+  /// Installed photovoltaic capacity in kW. Null for recipients.
+  solarCapacityKw Float?
+
+  // -- Recipient-only need attributes -------------------------------------
+  //
+  // These are the structural facts a council already holds about a household.
+  // They feed the deterministic allocation engine directly. They are null for
+  // exporters.
+
+  /// In receipt of a means-tested benefit.
+  onMeansTestedBenefit Boolean?
+  /// EPC band A–G. Lower bands mean a leakier home and a colder winter.
+  epcBand              String?
+  occupants            Int?
+  hasChildUnderFive    Boolean?
+  hasResidentOverSixtyFive Boolean?
+  /// A health condition made worse by cold, as recorded by the council.
+  hasHealthCondition   Boolean?
+  /// Prepayment meters are a well-documented marker of self-disconnection risk.
+  onPrepaymentMeter    Boolean?
+  /// Expected daily consumption in kWh during cold weather, used as the
+  /// baseline that recent consumption is compared against.
+  coldWeatherBaselineKwh Float?
+
+  /// HMAC-SHA256 of `reference` under the deployment salt. This is the only
+  /// household identifier that is ever written on chain. Null for exporters.
+  recipientHash String? @unique
+
+  createdAt DateTime @default(now())
+
+  readings             MeterReading[]
+  needSignals          NeedSignal[]
+  allocationsExported  Allocation[]   @relation("ExporterAllocations")
+  allocationsReceived  Allocation[]   @relation("RecipientAllocations")
+
+  @@index([role])
+}
+
+/// A half-hourly meter reading.
+///
+/// SIMULATED. We have no smart meter access and do not pretend otherwise. The
+/// `simulated` flag is surfaced in the UI rather than hidden; the integration
+/// path is the DCC and supplier APIs.
+model MeterReading {
+  id          String    @id
+  householdId String
+  household   Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+
+  /// Start of the half-hourly settlement period, in UTC.
+  intervalStart DateTime
+  /// One of MeterChannel in src/lib/domain.ts: EXPORT or CONSUMPTION.
+  channel       String
+  kwh           Float
+
+  simulated Boolean @default(true)
+
+  @@unique([householdId, intervalStart, channel])
+  @@index([intervalStart])
+}
+
+// ---------------------------------------------------------------------------
+// Need signals — the one place a language model touches the inputs
+// ---------------------------------------------------------------------------
+
+/// A free-text case note written by a council officer, plus the structured
+/// interpretation of it.
+///
+/// This is where the AI does its first job. It reads `caseNote` and writes
+/// `parsedJson` and `vulnerabilityScore`. It does this ONCE, and the result is
+/// persisted here. The allocation engine then reads only the persisted columns.
+///
+/// That boundary is what keeps the determinism claim honest: the engine is
+/// reproducible given the database state, and the model's contribution is a
+/// stored, inspectable, re-checkable input rather than a live judgement call
+/// made during allocation.
+model NeedSignal {
+  id          String    @id
+  householdId String
+  household   Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+
+  recordedAt DateTime
+  /// The note as written, in the officer's own words.
+  caseNote   String
+
+  /// Structured extraction: JSON encoding of ParsedNeedSignal.
+  parsedJson         String?
+  /// Normalised 0–1 contribution consumed by the engine's need score.
+  vulnerabilityScore Float?
+  parserModel        String?
+  /// Bumped whenever the parsing prompt or schema changes, so stale parses are
+  /// identifiable rather than silently trusted.
+  parserVersion      String?
+  parsedAt           DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([householdId, recordedAt])
+}
+
+// ---------------------------------------------------------------------------
+// Allocation — deterministic, replayable, no language model involved
+// ---------------------------------------------------------------------------
+
+/// One execution of the allocation engine over one time window.
+///
+/// `inputDigest` and `outputDigest` are what make the reproducibility claim
+/// testable rather than rhetorical: re-run the engine with the same seed over
+/// the same window, and both digests must match.
+model AllocationRun {
+  id    String @id
+  potId String
+  pot   Pot    @relation(fields: [potId], references: [id], onDelete: Cascade)
+
+  /// The seed fixes every tie-break in the engine. Same seed, same answer.
+  seed          String
+  engineVersion String
+
+  windowStart DateTime
+  windowEnd   DateTime
+
+  /// SHA-256 over the canonicalised engine inputs.
+  inputDigest  String
+  /// SHA-256 over the canonicalised engine outputs.
+  outputDigest String
+
+  createdAt DateTime @default(now())
+
+  allocations Allocation[]
+
+  @@index([potId, createdAt])
+}
+
+/// A single decision: this many kilowatt-hours from this exporter to this
+/// recipient, at this price, for this reason.
+model Allocation {
+  id    String        @id
+  runId String
+  run   AllocationRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  potId String
+  pot   Pot           @relation(fields: [potId], references: [id], onDelete: Cascade)
+
+  exporterId  String
+  exporter    Household @relation("ExporterAllocations", fields: [exporterId], references: [id])
+  recipientId String
+  recipient   Household @relation("RecipientAllocations", fields: [recipientId], references: [id])
+
+  kwh Float
+  /// The same quantity as an integer, in thousandths of a kWh. This is the form
+  /// written on chain — smart contracts have no floating point, and neither
+  /// should an auditable quantity.
+  milliKwh Int
+
+  /// The tariff applied, in pence per kWh. Stored per allocation so a historic
+  /// settlement is still explicable after the tariff assumption changes.
+  pencePerKwh Int
+  amountPence Int
+
+  /// Position in the run's ordering. Rank 1 was the neediest eligible match.
+  rank Int
+
+  /// JSON encoding of AllocationReasoning: every factor, its raw value, its
+  /// weight, and its contribution. This is what the dashboard expands and what
+  /// a councillor is entitled to see.
+  reasoningJson String
+
+  createdAt DateTime @default(now())
+
+  settlement Settlement?
+
+  @@index([runId, rank])
+  @@index([recipientId])
+}
+
+// ---------------------------------------------------------------------------
+// Settlement — the part that is genuinely on a public chain
+// ---------------------------------------------------------------------------
+
+/// The on-chain record for one allocation.
+///
+/// Note what is here and what is not. kWh, an amount, a timestamp, a pot
+/// reference and an HMAC of the recipient reference go on chain. Names,
+/// addresses, benefit status and health conditions do not, and cannot, because
+/// they are never passed to the contract.
+model Settlement {
+  id           String     @id
+  allocationId String     @unique
+  allocation   Allocation @relation(fields: [allocationId], references: [id], onDelete: Cascade)
+
+  /// One of SettlementStatus in src/lib/domain.ts.
+  status String
+  /// One of ChainName in src/lib/domain.ts. Records which network this
+  /// settlement actually happened on, so a backfilled historic record can never
+  /// be mistaken for a confirmed public transaction.
+  chain  String
+
+  /// The HMAC written on chain. Joins back to Household.recipientHash locally.
+  recipientHash String
+  potReference  String
+  milliKwh      Int
+  amountPence   Int
+  /// Token amount as a uint256 decimal string. JavaScript numbers cannot hold a
+  /// uint256, so this is never a numeric column.
+  tokenAmountRaw String
+
+  txHash      String?
+  blockNumber Int?
+  /// Fully-qualified block explorer URL. Beat six of the demo opens this.
+  explorerUrl String?
+
+  /// Populated when status is FAILED, so the dashboard can degrade to a clear
+  /// message instead of a stack trace.
+  failureReason String?
+
+  submittedAt DateTime?
+  confirmedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+/// Where a deployed contract lives, recorded at deploy time so the app never
+/// hardcodes an address and the UI can always produce a working explorer link.
+model ContractDeployment {
+  id String @id
+
+  /// One of ChainName in src/lib/domain.ts.
+  chain   String
+  name    String
+  address String
+
+  deployTxHash String
+  blockNumber  Int?
+  explorerUrl  String?
+  deployedAt   DateTime
+
+  createdAt DateTime @default(now())
+
+  @@unique([chain, name])
+}
+
+// ---------------------------------------------------------------------------
+// Reporting — the AI's second and only other job
+// ---------------------------------------------------------------------------
+
+/// A plain-English accountability report.
+///
+/// `factsJson` holds the exact figures handed to the model, computed from the
+/// ledger by ordinary code. The narrative is generated from those figures and
+/// nothing else, so any claim in the prose can be checked against the numbers
+/// that produced it. The model writes the sentences; it does not source the
+/// facts.
+model Report {
+  id    String @id
+  potId String
+  pot   Pot    @relation(fields: [potId], references: [id], onDelete: Cascade)
+
+  periodStart DateTime
+  periodEnd   DateTime
+  generatedAt DateTime
+
+  narrative String
+  factsJson String
+  model     String?
+
+  createdAt DateTime @default(now())
+
+  @@index([potId, generatedAt])
+}
