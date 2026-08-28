@@ -12,6 +12,12 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Generated code. Linting it tells us nothing about our own work, and its
+    // style is not ours to change.
+    "src/generated/**",
+    "artifacts/**",
+    "cache/**",
+    "types/**",
   ]),
 ]);
 

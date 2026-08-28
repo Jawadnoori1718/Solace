@@ -7,7 +7,9 @@
  * not a white screen during a demonstration in Parliament.
  */
 
-import { ChainName } from "./domain";
+// Fully-specified relative import: command-line tools run this module under
+// plain Node, which has no bundler to resolve extensionless paths.
+import { ChainName } from "./domain.ts";
 
 // ---------------------------------------------------------------------------
 // Operating mode

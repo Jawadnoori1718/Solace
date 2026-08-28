@@ -54,10 +54,27 @@ come in Phase 4)_
 
 ### Layer 3 — Settlement
 
-`SolacePound` (`SLP`), an ERC-20 token deployed to the Base Sepolia public
-testnet. Each allocation produces one on-chain transaction recording the energy
-transferred, the timestamp, the pot it was drawn from, and a hashed recipient
-identifier. _(detail to come in Phase 2 and Phase 5)_
+`SolacePound` (`SLP`) is an ERC-20 token deployed to the Base Sepolia public
+testnet. Two things about it are worth knowing.
+
+**It is denominated in pounds, not in the customary 18 decimals.** `decimals` is
+2, so one SLP is one pound and the smallest unit is one penny. Every amount in
+this system starts life as an integer number of pence in the council's ledger,
+so a two-decimal token maps to it exactly, with no scaling and no rounding. A
+block explorer shows `2,500.00 SLP` against a pot the council funded with
+£2,500.00, and the two figures are the same figure.
+
+**Each allocation calls `settle()`, not `transfer()`.** A bare ERC-20 transfer
+can only say that an amount moved between two addresses. `settle()` emits an
+`AllocationSettled` event carrying the energy delivered in milli-kWh, the
+amount, the pot reference, the timestamp and the hashed recipient — so the
+public record states what the money bought, not merely that it moved.
+
+The contract also enforces the constraint that matters most: **a pot cannot be
+overdrawn.** That rule lives on chain rather than in the application, so it
+holds even if our own code has a bug.
+
+_(Wiring allocations to settlement comes in Phase 5.)_
 
 ### Layer 4 — Councillor dashboard
 
@@ -166,19 +183,36 @@ cp .env.example .env.local
 | `npm run db:studio` | Browse the database |
 | `npm run typecheck` | Type-check without emitting |
 | `npm run lint` | Lint |
+| `npm run contracts:build` | Compile the Solidity |
+| `npm run contracts:test` | Run the contract test suite |
+| `npm run chain` | Start a local chain on port 8545 |
+| `npm run deploy:local` | Deploy to the local chain |
+| `npm run deploy:testnet` | Deploy to Base Sepolia |
 
-_(Seed, test, contract deployment and demo commands are added in later phases.)_
+Deploying records the contract address in the database, and the dashboard reads
+it from there. No address is ever hardcoded, so the interface cannot end up
+pointing at a contract that was replaced an hour before a demonstration.
+
+Setting `SOLACE_SMOKE=1` alongside a deploy command follows the deployment with
+a funded pot and one real settlement, which exercises the entire on-chain path
+in a few seconds.
+
+_(Seed and demo commands are added in later phases.)_
 
 ---
 
 ## Project layout
 
 ```
-prisma/schema.prisma   Database schema, heavily commented
-src/lib/domain.ts      Shared vocabulary and structured types
-src/lib/config.ts      Runtime configuration and stated assumptions
-src/lib/db.ts          Database client
-src/app/               Dashboard
+contracts/SolacePound.sol   The token and settlement contract
+test/SolacePound.test.ts    Contract tests
+scripts/deploy.ts           Deployment, recorded to the database
+prisma/schema.prisma        Database schema, heavily commented
+src/lib/domain.ts           Shared vocabulary and structured types
+src/lib/config.ts           Runtime configuration and stated assumptions
+src/lib/db.ts               Database client
+src/lib/format.ts           Money and energy formatting
+src/app/                    Dashboard
 ```
 
 ---

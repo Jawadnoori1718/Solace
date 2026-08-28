@@ -13,7 +13,10 @@
 
 import path from "node:path";
 import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
-import { PrismaClient } from "@/generated/prisma/client";
+// A relative, fully-specified import rather than the `@/` alias. Command-line
+// tools — the Hardhat deploy script, the seed script, the engine tests — run as
+// plain Node processes with no bundler to resolve path aliases for them.
+import { PrismaClient } from "../generated/prisma/client.ts";
 
 /** Absolute path to the SQLite file backing the demo. */
 export const DATABASE_FILE = path.join(process.cwd(), "prisma", "solace.db");
