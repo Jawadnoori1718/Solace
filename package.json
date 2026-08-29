@@ -15,6 +15,8 @@
     "db:studio": "prisma studio",
     "db:seed": "node scripts/seed.ts",
     "allocate": "node scripts/run-allocation.ts",
+    "settle": "node scripts/settle.ts",
+    "contracts:abi": "node scripts/generate-abi.ts",
     "chain": "hardhat node",
     "contracts:build": "hardhat compile",
     "contracts:test": "hardhat test",

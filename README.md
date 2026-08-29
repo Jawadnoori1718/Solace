@@ -152,7 +152,22 @@ The contract also enforces the constraint that matters most: **a pot cannot be
 overdrawn.** That rule lives on chain rather than in the application, so it
 holds even if our own code has a bug.
 
-_(Wiring allocations to settlement comes in Phase 5.)_
+**Every allocation becomes one transaction.** The settlement service writes the
+local record *before* sending the transaction, so a transaction that succeeds on
+chain while the process dies still leaves evidence behind. A settlement with no
+local record would be money that moved with nothing to explain it, which is the
+exact failure Solace exists to prevent.
+
+**Settlement never throws.** A failure is recorded against the allocation with
+its reason and the run continues. A settlement run that stops dead on the first
+bad transaction is useless on a stage, and parliamentary wifi is not a
+dependency this demonstration can afford.
+
+**The ledger is checked against the chain.** After settling, the pot balance is
+computed twice by entirely different means — once by summing database rows, once
+by reading contract storage — and the two are compared. In the seeded run both
+report £295.19 against a £400 pot, from 292 confirmed transactions delivering
+374.3 kWh.
 
 ### Layer 4 — Councillor dashboard
 
@@ -290,6 +305,7 @@ cp .env.example .env.local
 | `npm run db:studio` | Browse the database |
 | `npm run db:seed` | Generate the whole demo universe |
 | `npm run allocate` | Run the allocation engine and show its reasoning |
+| `npm run settle` | Fund the pot and settle allocations on chain |
 | `npm run test` | Unit tests and contract tests |
 | `npm run test:unit` | Unit tests only, no chain needed |
 | `npm run typecheck` | Type-check without emitting |
@@ -334,6 +350,8 @@ src/lib/engine/             The allocation engine
 src/lib/domain.ts           Shared vocabulary and structured types
 src/lib/config.ts           Runtime configuration and stated assumptions
 src/lib/privacy.ts          The HMAC boundary; nothing else hashes
+src/lib/chain/             viem clients and the committed ABI
+src/lib/settlement/        Allocations to on-chain transactions
 src/lib/db.ts               Database client
 src/lib/geo.ts              Distance between households
 src/lib/format.ts           Money and energy formatting
