@@ -32,7 +32,17 @@ export const metadata: Metadata = {
     "Surplus rooftop solar routed to households in need, settled on a public ledger, and reported back to councillors in plain English.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+/**
+ * Props are typed explicitly rather than with Next's generated `LayoutProps`.
+ * That type only exists after a build has produced `.next/types`, so using it
+ * makes `npm run typecheck` fail on a fresh clone — which is precisely when
+ * somebody is most likely to run it.
+ */
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html
       lang="en-GB"
