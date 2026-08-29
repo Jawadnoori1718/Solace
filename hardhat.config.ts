@@ -32,6 +32,13 @@ const deployerKey = process.env.DEPLOYER_PRIVATE_KEY?.trim() || LOCAL_TEST_KEY;
 const config: HardhatUserConfig = {
   plugins: [hardhatToolboxViemPlugin],
 
+  paths: {
+    // Contract tests need the Hardhat runtime. The unit tests in test/unit are
+    // plain `node --test` and must stay runnable without it, so that the
+    // allocation engine's reproducibility suite has no dependency on a chain.
+    tests: "test/contracts",
+  },
+
   solidity: {
     version: "0.8.28",
     settings: {

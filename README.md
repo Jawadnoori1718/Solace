@@ -37,11 +37,31 @@ important one.
 ### Layer 1 — Signal
 
 Half-hourly meter data for three exporting households and eight recipient
-households, plus thirty days of history.
+households, across thirty days.
 
 **This data is simulated, and the interface says so wherever it appears.** We
 have no smart meter access and do not imply otherwise. The integration path for
-a real deployment is the Data Communications Company and supplier APIs.
+a real deployment is the Data Communications Company and supplier APIs, which
+expose exactly this shape.
+
+It is simulated carefully rather than sketched. Generation comes from real solar
+geometry — declination, hour angle, air mass, the equation of time — so day
+length and the shape of the morning ramp are right for the latitude and the
+date. Weather is autocorrelated, so cloudy spells last rather than flicker every
+thirty minutes. Consumption is a base load that scales with occupancy plus a
+heating load driven by the actual temperature, calibrated per household.
+
+Most importantly, **fuel poverty is present in the readings rather than asserted
+alongside them**. A household that cannot afford heat consumes less than the
+weather says it should, and a prepayment meter that runs out goes dark for
+hours. Both appear in the generated data, and the allocation engine detects them
+from the readings alone. In the seeded month, the four prepayment households
+show sustained multi-hour spells below a quarter of their own median
+consumption; the credit-meter households show none.
+
+Every value derives from a single seed string. Running the seed twice produces
+byte-identical data, which is what makes the engine's reproducibility claim
+checkable rather than merely stated.
 
 ### Layer 2 — Allocation
 
@@ -104,6 +124,35 @@ This boundary is what keeps the reproducibility claim honest. The engine is
 deterministic given the database state, and the model's contribution is a
 stored, inspectable, re-checkable input rather than a live judgement made during
 allocation.
+
+---
+
+## What the data showed us
+
+Building the simulation properly surfaced something we would rather state than
+have someone discover. Across the seeded month, three rooftop arrays produce
+**873 kWh of surplus, worth about £244** — enough to cover roughly a third of
+the eight recipient households' demand.
+
+Run the same simulation over a January window and surplus collapses to **37.7
+kWh, worth £10.55, against 4,886 kWh of demand**. That is not a bug. It is
+British winter: the sun is low, the days are short, and the exporting households
+use most of what little they generate.
+
+So the naive framing — route winter solar surplus to fuel-poor homes in winter —
+does not physically work. Surplus is abundant in summer and absent in January,
+while need runs the other way.
+
+What does work is routing surplus whenever it exists and **tracking the credit
+until it is needed**. That makes the ledger the essential component rather than
+a nice-to-have: if value is banked in July and spent in January, something has
+to hold an auditable record of whose surplus it was, who received it, and what
+remains. That record is what Solace actually is.
+
+The pot is sized to match. £400 across a month-long pilot is proportionate to
+£244 of surplus. A real Household Support Fund allocation runs to millions
+across tens of thousands of homes; the thing that scales is not the pot but the
+property that every pound of it can be followed.
 
 ---
 
@@ -181,6 +230,9 @@ cp .env.example .env.local
 | `npm run db:migrate` | Apply schema migrations |
 | `npm run db:reset` | Drop and rebuild the database |
 | `npm run db:studio` | Browse the database |
+| `npm run db:seed` | Generate the whole demo universe |
+| `npm run test` | Unit tests and contract tests |
+| `npm run test:unit` | Unit tests only, no chain needed |
 | `npm run typecheck` | Type-check without emitting |
 | `npm run lint` | Lint |
 | `npm run contracts:build` | Compile the Solidity |
@@ -205,13 +257,23 @@ _(Seed and demo commands are added in later phases.)_
 
 ```
 contracts/SolacePound.sol   The token and settlement contract
-test/SolacePound.test.ts    Contract tests
 scripts/deploy.ts           Deployment, recorded to the database
+scripts/seed.ts             Builds the demo universe
 prisma/schema.prisma        Database schema, heavily commented
+src/lib/synthetic/          The data generator
+  rng.ts                      Seeded, reproducible randomness
+  solar.ts                    Solar geometry and array output
+  weather.ts                  Temperature and cloud
+  meter.ts                    Half-hourly readings
+  households.ts               The eleven households and the pot
 src/lib/domain.ts           Shared vocabulary and structured types
 src/lib/config.ts           Runtime configuration and stated assumptions
+src/lib/privacy.ts          The HMAC boundary; nothing else hashes
 src/lib/db.ts               Database client
+src/lib/geo.ts              Distance between households
 src/lib/format.ts           Money and energy formatting
+test/contracts/             Contract tests, need Hardhat
+test/unit/                  Unit tests, plain node
 src/app/                    Dashboard
 ```
 

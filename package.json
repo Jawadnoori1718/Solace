@@ -13,9 +13,12 @@
     "db:migrate": "prisma migrate dev",
     "db:reset": "prisma migrate reset --force",
     "db:studio": "prisma studio",
+    "db:seed": "node scripts/seed.ts",
     "chain": "hardhat node",
     "contracts:build": "hardhat compile",
     "contracts:test": "hardhat test",
+    "test": "npm run test:unit && npm run contracts:test",
+    "test:unit": "node --test \"test/unit/**/*.test.ts\"",
     "deploy:local": "hardhat run scripts/deploy.ts --network localhost",
     "deploy:testnet": "hardhat run scripts/deploy.ts --network baseSepolia"
   },
