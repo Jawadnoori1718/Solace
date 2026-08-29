@@ -189,6 +189,32 @@ model MeterReading {
   @@index([intervalStart])
 }
 
+/// Daily weather for the pilot area.
+///
+/// The allocation engine needs this to make its central claim about a
+/// household: not "it used 9 kWh yesterday", which means nothing on its own,
+/// but "it used 38% less than this weather should require". Without a
+/// temperature series there is no expectation to compare against, and a cold
+/// home looks identical to a frugal one.
+///
+/// SIMULATED here, like the meter data. A real deployment reads this from the
+/// Met Office DataPoint API, which publishes it for every UK postcode.
+model WeatherObservation {
+  id String @id
+
+  /// Midnight UTC on the day observed.
+  date DateTime @unique
+
+  meanTemperatureC Float
+  /// Degree-hours below the 15.5°C heating threshold, accumulated across the
+  /// day. The standard UK measure of how much heating a day demanded.
+  heatingDegreeHours Float
+
+  simulated Boolean @default(true)
+
+  @@index([date])
+}
+
 // ---------------------------------------------------------------------------
 // Need signals — the one place a language model touches the inputs
 // ---------------------------------------------------------------------------

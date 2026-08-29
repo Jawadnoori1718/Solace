@@ -65,12 +65,70 @@ checkable rather than merely stated.
 
 ### Layer 2 — Allocation
 
-A deterministic, reproducible solver. Given the same inputs it always produces
-the same outputs, and every decision can be replayed and explained from those
-inputs.
+A deterministic, reproducible solver. Given the same input it produces
+byte-identical output, and every decision can be replayed and explained from
+that input alone.
 
-**No language model participates in deciding who receives energy.** _(detail to
-come in Phase 4)_
+**No language model participates in deciding who receives energy.** The engine
+is a pure function: no database, no network, no clock, no model, and no random
+number that is not derived from the run's published seed.
+
+**How a household is scored.** Nine factors, each normalised to 0–1, each
+multiplied by a fixed published weight, and summed. The weights are a policy
+position and are stated as such — a council adopting Solace would set them
+through the same committee that signs off its fuel poverty strategy.
+
+| Factor | Weight |
+| --- | --- |
+| Means-tested benefit | 0.16 |
+| Consumption below weather-adjusted expectation | 0.16 |
+| EPC band | 0.14 |
+| Health condition worsened by cold | 0.12 |
+| Council case notes | 0.10 |
+| Prepayment meter | 0.10 |
+| Resident over 65 | 0.09 |
+| Child under five | 0.07 |
+| Evenings without supply | 0.06 |
+
+Where a factor cannot be evaluated — most often because no case note has been
+parsed — it is dropped and the remaining weights are scaled back up. A household
+is never penalised for a gap in the council's records.
+
+**Three constraints bind the solver.**
+
+*Proximity.* A recipient must be within 8 km of the exporting household.
+
+*Concurrent demand.* A household is only matched against surplus it could
+actually have used at that moment. Energy generated at two in the afternoon
+cannot warm a house at eight in the evening without storage, and this pilot has
+none. This makes the numbers smaller and the claim true.
+
+*Fairness.* Priority decays with what a household has already received:
+`priority = need ÷ (1 + servedKwh / 150)`. Without it, the neediest household is
+neediest again tomorrow and every day after, and a need-weighted allocator hands
+everything to one home while every individual decision remains defensible.
+
+**Eligibility is a published threshold, and it exists because the data demanded
+it.** Surplus is scarce across a month but not within a sunny afternoon — at
+midday three arrays produce more than nearby households are drawing, so ranking
+decided only the *order* households were served in, not *whether* they were.
+A comfortable household with no benefits and a band C flat was receiving fuel
+poverty support alongside a pensioner self-disconnecting on a prepayment meter.
+That is a question about who a fund is for, and every real fund answers it. A
+need score below 0.35 is not eligible; the number is a single published constant
+a council can move.
+
+**Every decision carries its reasoning** — each factor, its raw value, its
+weight and its contribution — so a reader can check the arithmetic rather than
+take the total on trust. Households that received nothing get a stated reason
+too. A system that explains only its positive decisions cannot answer the
+question it will actually be asked.
+
+**Reproducibility is attested, not asserted.** Every run stores a SHA-256 digest
+of its canonicalised input and output. Re-run the engine on the same input and
+both digests must match. The test suite holds it to that, including against
+inputs built in a different key order and with households listed in a different
+sequence.
 
 ### Layer 3 — Settlement
 
@@ -231,6 +289,7 @@ cp .env.example .env.local
 | `npm run db:reset` | Drop and rebuild the database |
 | `npm run db:studio` | Browse the database |
 | `npm run db:seed` | Generate the whole demo universe |
+| `npm run allocate` | Run the allocation engine and show its reasoning |
 | `npm run test` | Unit tests and contract tests |
 | `npm run test:unit` | Unit tests only, no chain needed |
 | `npm run typecheck` | Type-check without emitting |
@@ -266,6 +325,12 @@ src/lib/synthetic/          The data generator
   weather.ts                  Temperature and cloud
   meter.ts                    Half-hourly readings
   households.ts               The eleven households and the pot
+src/lib/engine/             The allocation engine
+  allocate.ts                 The solver
+  scoring.ts                  The nine need factors and their weights
+  fairness.ts                 The fairness decay
+  digest.ts                   Canonical hashing, for replay
+  load.ts                     Database to engine input
 src/lib/domain.ts           Shared vocabulary and structured types
 src/lib/config.ts           Runtime configuration and stated assumptions
 src/lib/privacy.ts          The HMAC boundary; nothing else hashes

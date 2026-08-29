@@ -89,6 +89,7 @@ async function main(): Promise<void> {
   // Clear in dependency order. Deleting the pot and households would cascade,
   // but being explicit means this still reads correctly if the schema changes.
   console.log(`\n  Clearing existing data`);
+  await prisma.weatherObservation.deleteMany();
   await prisma.settlement.deleteMany();
   await prisma.allocation.deleteMany();
   await prisma.allocationRun.deleteMany();
@@ -181,6 +182,19 @@ async function main(): Promise<void> {
   console.log(
     `  Weather   ${weather.size} days, daily means ${coldest.toFixed(1)}°C to ${warmest.toFixed(1)}°C`,
   );
+
+  // The allocation engine needs a temperature series to say "this household is
+  // using less than the weather requires". Without it a cold home and a frugal
+  // one are indistinguishable.
+  await prisma.weatherObservation.createMany({
+    data: [...weather.values()].map((day) => ({
+      id: `wx_${isoDate(day.date)}`,
+      date: day.date,
+      meanTemperatureC: Math.round(day.meanTemperatureC * 100) / 100,
+      heatingDegreeHours: Math.round(day.heatingDegreeHours * 100) / 100,
+      simulated: true,
+    })),
+  });
 
   // -- Meter readings -----------------------------------------------------
 

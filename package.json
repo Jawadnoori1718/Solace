@@ -14,6 +14,7 @@
     "db:reset": "prisma migrate reset --force",
     "db:studio": "prisma studio",
     "db:seed": "node scripts/seed.ts",
+    "allocate": "node scripts/run-allocation.ts",
     "chain": "hardhat node",
     "contracts:build": "hardhat compile",
     "contracts:test": "hardhat test",
