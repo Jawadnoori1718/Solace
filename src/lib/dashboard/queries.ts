@@ -276,6 +276,21 @@ export interface HouseholdRow {
  * actually ask, which is who was left out.
  */
 export async function getHouseholds(): Promise<HouseholdRow[]> {
+  // The run's assessments cover every household, including the ones it decided
+  // against. Allocations only carry a score for households that were served, so
+  // without this a household that received nothing would show no need score —
+  // which reads as "we never looked", rather than "we looked and said no".
+  const run = await prisma.allocationRun.findFirst({
+    orderBy: { createdAt: "desc" },
+    select: { assessmentsJson: true },
+  });
+
+  const assessedScore = new Map<string, number>(
+    (parseJsonColumn<NeedSummaryRow[]>(run?.assessmentsJson ?? null) ?? []).map(
+      (assessment) => [assessment.recipientReference, assessment.needScore],
+    ),
+  );
+
   const households = await prisma.household.findMany({
     where: { role: HouseholdRole.RECIPIENT },
     orderBy: { reference: "asc" },
@@ -311,12 +326,84 @@ export async function getHouseholds(): Promise<HouseholdRow[]> {
       hasHealthCondition: household.hasHealthCondition ?? false,
       onMeansTestedBenefit: household.onMeansTestedBenefit ?? false,
 
-      needScore: reasoning?.needScore ?? null,
+      needScore:
+        assessedScore.get(household.reference) ?? reasoning?.needScore ?? null,
       kwhReceived,
       pencePaid: received.reduce((sum, row) => sum + row.amountPence, 0),
       timesServed: received.length,
       shareOfConsumption: consumed > 0 ? kwhReceived / consumed : null,
     };
+  });
+}
+
+// ---------------------------------------------------------------------------
+// The run
+// ---------------------------------------------------------------------------
+
+export interface NeedSummaryRow {
+  recipientReference: string;
+  needScore: number;
+  eligible: boolean;
+  ineligibleReason: string | null;
+  actualDailyKwh: number;
+  expectedDailyKwh: number;
+}
+
+export interface UnservedRow {
+  recipientReference: string;
+  reason: string;
+}
+
+export interface RunSummary {
+  engineVersion: string;
+  seed: string;
+  inputDigest: string;
+  outputDigest: string;
+  windowStart: Date;
+  windowEnd: Date;
+  unallocatedKwh: number | null;
+  assessments: NeedSummaryRow[];
+  unserved: UnservedRow[];
+  decisionCount: number;
+}
+
+/**
+ * The most recent allocation run, with its published assessments.
+ *
+ * This is what lets the dashboard explain the households it decided against.
+ * Returns null before the engine has been run.
+ */
+export async function getLatestRun(): Promise<RunSummary | null> {
+  const run = await prisma.allocationRun.findFirst({
+    orderBy: { createdAt: "desc" },
+    include: { _count: { select: { allocations: true } } },
+  });
+  if (run === null) return null;
+
+  return {
+    engineVersion: run.engineVersion,
+    seed: run.seed,
+    inputDigest: run.inputDigest,
+    outputDigest: run.outputDigest,
+    windowStart: run.windowStart,
+    windowEnd: run.windowEnd,
+    unallocatedKwh: run.unallocatedKwh,
+    assessments:
+      parseJsonColumn<NeedSummaryRow[]>(run.assessmentsJson) ?? [],
+    unserved: parseJsonColumn<UnservedRow[]>(run.unservedJson) ?? [],
+    decisionCount: run._count.allocations,
+  };
+}
+
+/** Allocations decided but not yet settled. */
+export async function getPendingCount(): Promise<number> {
+  return prisma.allocation.count({
+    where: {
+      OR: [
+        { settlement: null },
+        { settlement: { status: SettlementStatus.FAILED } },
+      ],
+    },
   });
 }
 

@@ -359,6 +359,94 @@ export async function onChainPotBalancePence(
   }
 }
 
+/** What the contract says has been paid into a pot, in pence. Null if unreachable. */
+export async function onChainPotFundedPence(
+  potReference: string,
+): Promise<number | null> {
+  try {
+    const address = await tokenAddress(ACTIVE_CHAIN);
+    if (address === null) return null;
+
+    const funded = await publicClient().readContract({
+      address,
+      abi: SOLACE_POUND_ABI,
+      functionName: "potFundedPence",
+      args: [potReferenceHash(potReference)],
+    });
+
+    return Number(funded);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Reconcile the local deposit record against the chain.
+ *
+ * A local Hardhat node keeps no state between restarts, but the database does.
+ * Restart the node and the application still believes the pot holds £400, while
+ * the freshly deployed contract believes it holds nothing — so every settlement
+ * reverts with `PotOverdrawn` and the whole run fails for a reason that looks
+ * nothing like the cause.
+ *
+ * This is exactly the failure that ruins a demonstration: it is silent, it
+ * follows an ordinary action (restarting a terminal), and the error it produces
+ * points at the wrong thing.
+ *
+ * So the chain is treated as the authority. If it has been funded with less
+ * than the database claims, the local deposits are marked as not having
+ * happened and the caller is told to fund again.
+ */
+export async function reconcilePotFunding(potId: string, potReference: string): Promise<{
+  reconciled: boolean;
+  onChainPence: number | null;
+  localPence: number;
+  message: string | null;
+}> {
+  const [onChainPence, local] = await Promise.all([
+    onChainPotFundedPence(potReference),
+    prisma.deposit.aggregate({
+      where: { potId, status: { in: [...SPENT_STATUSES] } },
+      _sum: { amountPence: true },
+    }),
+  ]);
+
+  const localPence = local._sum.amountPence ?? 0;
+
+  if (onChainPence === null) {
+    return {
+      reconciled: false,
+      onChainPence,
+      localPence,
+      message: "Could not read the pot balance from the chain.",
+    };
+  }
+
+  if (onChainPence >= localPence) {
+    return { reconciled: false, onChainPence, localPence, message: null };
+  }
+
+  // The chain has less than we recorded. Our record is the one that is wrong.
+  await prisma.deposit.updateMany({
+    where: { potId, status: { in: [...SPENT_STATUSES] } },
+    data: {
+      status: SettlementStatus.FAILED,
+      txHash: null,
+      blockNumber: null,
+      explorerUrl: null,
+    },
+  });
+
+  return {
+    reconciled: true,
+    onChainPence,
+    localPence,
+    message:
+      `The chain reports ${onChainPence} pence in this pot but the database recorded ${localPence}. ` +
+      `The chain was most likely restarted. The stale deposit has been cleared and the pot needs funding again.`,
+  };
+}
+
 /** Allocations with no settlement yet, oldest first. */
 export async function pendingAllocations(potId: string, take?: number) {
   return prisma.allocation.findMany({
@@ -394,11 +482,44 @@ function failure(reason: string): SettlementOutcome {
   };
 }
 
-/** Turn an unknown thrown value into something worth showing a person. */
+/**
+ * Turn an unknown thrown value into something worth showing a person.
+ *
+ * viem reports a reverted call as "The contract function reverted", which names
+ * the symptom and hides the cause. Our contract reverts with named custom
+ * errors — `PotOverdrawn`, `NotASettler` — and those names are the whole
+ * diagnosis, so they are dug out of the error's cause chain and reported.
+ */
 function describe(error: unknown): string {
+  const revertName = findRevertName(error);
+
   if (error instanceof Error) {
-    // viem errors carry a useful first line and then a wall of detail.
-    return error.message.split("\n")[0].trim();
+    const short =
+      "shortMessage" in error && typeof error.shortMessage === "string"
+        ? error.shortMessage
+        : error.message.split("\n")[0].trim();
+
+    return revertName === null ? short : `${short} (${revertName})`;
   }
+
   return String(error);
+}
+
+/** Walk an error's cause chain looking for a decoded custom error name. */
+function findRevertName(error: unknown, depth = 0): string | null {
+  if (depth > 8 || error === null || typeof error !== "object") return null;
+
+  const candidate = error as {
+    data?: { errorName?: string; args?: unknown[] };
+    cause?: unknown;
+  };
+
+  if (typeof candidate.data?.errorName === "string") {
+    const args = candidate.data.args;
+    return Array.isArray(args) && args.length > 0
+      ? `${candidate.data.errorName}: ${args.map(String).join(", ")}`
+      : candidate.data.errorName;
+  }
+
+  return findRevertName(candidate.cause, depth + 1);
 }

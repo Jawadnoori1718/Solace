@@ -80,6 +80,32 @@ export function PotSummary({ pot }: { pot: PotOverview }) {
           note="had it been exported instead"
         />
       </dl>
+
+      {/*
+        The independent check. Everything above is this application's own
+        account of itself; this is the link that lets somebody go and look at
+        the record without taking our word for any of it.
+      */}
+      {pot.latestSettlement !== null && (
+        <div className="mt-5 border-t border-hairline pt-4">
+          {pot.latestSettlement.explorerUrl === null ? (
+            <p className="text-xs text-ink-muted">
+              Settled on a local chain, which has no public explorer. Switch to
+              live mode to settle on Base Sepolia, where every transaction is
+              publicly verifiable.
+            </p>
+          ) : (
+            <a
+              href={pot.latestSettlement.explorerUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 text-sm font-medium text-money underline-offset-4 hover:underline"
+            >
+              Verify the most recent settlement on the public block explorer ↗
+            </a>
+          )}
+        </div>
+      )}
     </section>
   );
 }

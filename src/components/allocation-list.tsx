@@ -1,13 +1,14 @@
 import { formatKwh, formatPence, shortenHash } from "@/lib/format";
 import { SettlementStatus } from "@/lib/domain";
+import { ExpandableRow, ReasoningPanel } from "./reasoning-panel";
 import type { AllocationRow } from "@/lib/dashboard/queries";
 
 /**
  * The ledger, most recent first.
  *
- * Each row states what moved, between whom, and whether it reached the chain.
- * The reasoning panel and the live feed arrive in Phase 7; this is the standing
- * record they will animate on top of.
+ * Every row opens to reveal the engine's full reasoning: each factor, its
+ * weight, and what it contributed. This is the part that answers a councillor
+ * being asked in committee why a particular household was chosen.
  */
 export function AllocationList({ allocations }: { allocations: AllocationRow[] }) {
   if (allocations.length === 0) {
@@ -17,51 +18,81 @@ export function AllocationList({ allocations }: { allocations: AllocationRow[] }
         <code className="rounded bg-sunken px-1.5 py-0.5 text-xs">
           npm run allocate
         </code>{" "}
-        to decide, then{" "}
-        <code className="rounded bg-sunken px-1.5 py-0.5 text-xs">
-          npm run settle
-        </code>{" "}
-        to settle.
+        to decide, then settle them.
       </p>
     );
   }
 
   return (
     <ul className="divide-y divide-hairline overflow-hidden rounded-lg border border-hairline bg-surface">
-      {allocations.map((allocation) => (
-        <li key={allocation.id} className="px-5 py-4">
-          <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
-            <div className="min-w-0">
-              <p className="text-sm text-ink">
-                <span className="font-medium">
-                  {allocation.recipient.locality}
+      {allocations.map((allocation, index) => (
+        <li key={allocation.id}>
+          <ExpandableRow
+            // The first row opens by default. Reasoning that has to be
+            // discovered is reasoning most people never see, and this is the
+            // part of the interface that answers "why them".
+            defaultOpen={index === 0}
+            summary={
+              <span className="flex flex-wrap items-baseline justify-between gap-x-5 gap-y-1">
+                <span className="min-w-0">
+                  <span className="block text-sm text-ink">
+                    <span className="font-medium">
+                      {allocation.recipient.locality}
+                    </span>
+                    <span className="mx-1.5 text-ink-muted" aria-hidden="true">
+                      ←
+                    </span>
+                    <span className="text-ink-secondary">
+                      {allocation.exporter.locality}
+                    </span>
+                  </span>
+                  <span className="mt-0.5 block text-xs text-ink-muted">
+                    {longDate(allocation.date)}
+                    <span className="mx-1.5" aria-hidden="true">
+                      ·
+                    </span>
+                    <span className="tabular">
+                      {allocation.recipient.reference}
+                    </span>
+                    {allocation.reasoning !== null && (
+                      <>
+                        <span className="mx-1.5" aria-hidden="true">
+                          ·
+                        </span>
+                        need{" "}
+                        <span className="tabular">
+                          {allocation.reasoning.needScore.toFixed(2)}
+                        </span>
+                      </>
+                    )}
+                  </span>
                 </span>
-                <span className="mx-1.5 text-ink-muted" aria-hidden="true">
-                  ←
-                </span>
-                <span className="text-ink-secondary">
-                  {allocation.exporter.locality}
-                </span>
-              </p>
-              <p className="mt-0.5 text-xs text-ink-muted">
-                {longDate(allocation.date)}
-                <span className="mx-1.5" aria-hidden="true">
-                  ·
-                </span>
-                <span className="tabular">{allocation.recipient.reference}</span>
-              </p>
-            </div>
 
-            <div className="flex items-baseline gap-5">
-              <span className="figure tabular text-base font-semibold text-warmth">
-                {formatKwh(allocation.kwh)}
+                <span className="flex items-baseline gap-5">
+                  <span className="figure tabular text-base font-semibold text-warmth">
+                    {formatKwh(allocation.kwh)}
+                  </span>
+                  <span className="figure tabular text-base font-semibold text-ink">
+                    {formatPence(allocation.amountPence)}
+                  </span>
+                  <SettlementBadge settlement={allocation.settlement} />
+                </span>
               </span>
-              <span className="figure tabular text-base font-semibold text-ink">
-                {formatPence(allocation.amountPence)}
-              </span>
-              <SettlementBadge settlement={allocation.settlement} />
-            </div>
-          </div>
+            }
+          >
+            {allocation.reasoning === null ? (
+              <p className="border-t border-hairline bg-sunken/40 px-5 py-4 text-sm text-ink-muted">
+                No reasoning was stored for this allocation.
+              </p>
+            ) : (
+              <ReasoningPanel
+                reasoning={allocation.reasoning}
+                kwh={allocation.kwh}
+                amountPence={allocation.amountPence}
+                settlement={allocation.settlement}
+              />
+            )}
+          </ExpandableRow>
         </li>
       ))}
     </ul>
@@ -73,7 +104,11 @@ export function AllocationList({ allocations }: { allocations: AllocationRow[] }
  *
  * A local-chain settlement is real but not public, and says so rather than
  * borrowing the credibility of a public one. Only a settlement with a working
- * explorer link offers one.
+ * explorer offers a link.
+ *
+ * Rendered as a span rather than an anchor inside the expandable row's button,
+ * except where there is a real link — nesting interactive elements breaks
+ * keyboard navigation, so the link stops the click from also toggling the row.
  */
 function SettlementBadge({
   settlement,
@@ -109,26 +144,17 @@ function SettlementBadge({
 
   const label = shortenHash(settlement.txHash ?? "", 6);
 
-  if (settlement.explorerUrl === null) {
-    return (
-      <span
-        className="rounded-full border border-good/30 bg-good/10 px-2 py-0.5 text-xs text-good tabular"
-        title="Confirmed on a local chain, which has no public explorer"
-      >
-        {label}
-      </span>
-    );
-  }
-
   return (
-    <a
-      href={settlement.explorerUrl}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="rounded-full border border-good/30 bg-good/10 px-2 py-0.5 text-xs text-good tabular underline-offset-2 hover:underline"
+    <span
+      className="tabular rounded-full border border-good/30 bg-good/10 px-2 py-0.5 text-xs text-good"
+      title={
+        settlement.explorerUrl === null
+          ? "Confirmed on a local chain, which has no public explorer"
+          : "Confirmed on a public testnet"
+      }
     >
-      {label} ↗
-    </a>
+      {label}
+    </span>
   );
 }
 

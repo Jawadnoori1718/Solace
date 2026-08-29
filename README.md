@@ -196,7 +196,23 @@ The palette was validated rather than chosen by eye: worst adjacent contrast
 under simulated colour-vision deficiency is ΔE 22.1 against a floor of 8, and
 ΔE 28.1 for normal vision against a floor of 15.
 
-_(The live feed, animated balance and expandable reasoning arrive in Phase 7.)_
+**Every allocation opens to show its reasoning** — each factor, its raw value,
+its published weight, and what it contributed, so a reader can add up the column
+and arrive at the total themselves. That is the difference between an
+explanation and an assertion.
+
+**Settlement runs live.** Pressing "Settle now" opens a stream that settles
+pending allocations one at a time while the balance counts down. Each row
+appears only after its transaction has been mined and its receipt confirmed —
+the feed reports the chain, it does not anticipate it. The only artifice is a
+pause between settlements so a person can follow them; on a local chain they
+otherwise complete in about four milliseconds each.
+
+**Households that received nothing get their own panel**, with the engine's
+reason in its own words and the need score that produced it. The run's
+assessment of every household is stored, not just the ones it served, because a
+system that explains only its positive decisions cannot answer the question it
+will actually be asked.
 
 ---
 
@@ -328,6 +344,7 @@ cp .env.example .env.local
 | `npm run db:seed` | Generate the whole demo universe |
 | `npm run allocate` | Run the allocation engine and show its reasoning |
 | `npm run settle` | Fund the pot and settle allocations on chain |
+| `npm run demo:prepare` | Settle the history, hold back 12 for the live demo |
 | `npm run test` | Unit tests and contract tests |
 | `npm run test:unit` | Unit tests only, no chain needed |
 | `npm run typecheck` | Type-check without emitting |

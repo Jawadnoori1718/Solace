@@ -1,12 +1,16 @@
 import { AllocationList } from "@/components/allocation-list";
 import { BalanceChart } from "@/components/balance-chart";
 import { HouseholdPanel } from "@/components/household-panel";
+import { LiveSettlement } from "@/components/live-settlement";
 import { Masthead } from "@/components/masthead";
 import { PotSummary } from "@/components/pot-summary";
+import { RunProvenance, UnservedPanel } from "@/components/unserved-panel";
 import { configurationWarnings } from "@/lib/config";
 import {
   getBalanceSeries,
   getHouseholds,
+  getLatestRun,
+  getPendingCount,
   getPotOverview,
   getRecentAllocations,
   type BalancePoint,
@@ -29,10 +33,12 @@ export default async function Dashboard() {
     return <NotSeeded />;
   }
 
-  const [allocations, households, series] = await Promise.all([
+  const [allocations, households, series, run, pendingCount] = await Promise.all([
     getRecentAllocations(12),
     getHouseholds(),
     getBalanceSeries(),
+    getLatestRun(),
+    getPendingCount(),
   ]);
 
   const warnings = configurationWarnings();
@@ -49,22 +55,34 @@ export default async function Dashboard() {
       <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-8">
         <PotSummarySection pot={pot} series={series} />
 
+        <div className="mt-8">
+          <LiveSettlement
+            openingBalancePence={pot.balancePence}
+            pendingCount={pendingCount}
+          />
+        </div>
+
         <div className="mt-8 grid gap-8 lg:grid-cols-5">
           <section className="lg:col-span-3">
             <SectionHeading
               title="Recent allocations"
-              note="Newest first. Every settled row is a transaction on a public ledger."
+              note="Newest first. Open any row to see exactly why that household was chosen."
             />
             <AllocationList allocations={allocations} />
           </section>
 
-          <section className="lg:col-span-2">
-            <SectionHeading
-              title="Households"
-              note="Ordered by the share of each household's electricity that Solace covered."
-            />
-            <HouseholdPanel households={households} />
-          </section>
+          <div className="space-y-8 lg:col-span-2">
+            <section>
+              <SectionHeading
+                title="Households"
+                note="Ordered by the share of each household's electricity that Solace covered."
+              />
+              <HouseholdPanel households={households} />
+            </section>
+
+            {run !== null && <UnservedPanel run={run} />}
+            {run !== null && <RunProvenance run={run} />}
+          </div>
         </div>
 
         {warnings.length > 0 && (

@@ -24,6 +24,7 @@ import {
   fundPot,
   onChainPotBalancePence,
   pendingAllocations,
+  reconcilePotFunding,
   resolveChainContext,
   settleAllocation,
   spentPence,
@@ -66,6 +67,13 @@ async function main(): Promise<void> {
   console.log(`  Contract  ${context.address}`);
 
   // -- Fund the pot, once ---------------------------------------------------
+
+  // The chain is the authority on whether the pot was really funded. A local
+  // node that has been restarted has forgotten, even though we have not.
+  const reconciliation = await reconcilePotFunding(pot.id, pot.reference);
+  if (reconciliation.message !== null) {
+    console.log(`  Note      ${reconciliation.message}`);
+  }
 
   const existingDeposit = await prisma.deposit.findFirst({
     where: { potId: pot.id, status: "CONFIRMED" },

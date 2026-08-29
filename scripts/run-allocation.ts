@@ -133,6 +133,11 @@ async function persist(
       windowEnd: new Date(`${result.windowEnd}T00:00:00.000Z`),
       inputDigest: result.inputDigest,
       outputDigest: result.outputDigest,
+      // Stored so the dashboard can explain the households it decided against,
+      // not only the ones it served.
+      assessmentsJson: toJsonColumn(result.assessments),
+      unservedJson: toJsonColumn(result.unserved),
+      unallocatedKwh: result.unallocatedKwh,
     },
   });
 

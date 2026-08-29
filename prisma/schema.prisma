@@ -280,6 +280,23 @@ model AllocationRun {
   /// SHA-256 over the canonicalised engine outputs.
   outputDigest String
 
+  /// JSON array of NeedSummary: the engine's assessment of EVERY household in
+  /// the run, including those it decided against.
+  ///
+  /// Stored because the allocations alone cannot answer the question a
+  /// councillor is most likely to ask, which is why a particular household
+  /// received nothing. Without this the dashboard can explain its successes and
+  /// not its refusals, which is half an accountability system.
+  assessmentsJson String?
+
+  /// JSON array of UnservedRecipient: each household that received nothing and
+  /// the reason, in plain English.
+  unservedJson String?
+
+  /// Surplus that existed but could not be placed, in kWh. Almost always
+  /// because nobody nearby was drawing power when the sun was out.
+  unallocatedKwh Float?
+
   createdAt DateTime @default(now())
 
   allocations Allocation[]

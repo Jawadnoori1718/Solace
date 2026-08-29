@@ -87,6 +87,25 @@ body {
   color: var(--color-ink-muted);
 }
 
+/**
+ * A settled allocation arriving in the live feed.
+ *
+ * Brief and slight. The row should register as new without the page appearing
+ * to jump; a councillor is reading the figures, not watching an animation.
+ */
+@keyframes settle-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+    background-color: color-mix(in srgb, var(--color-good) 8%, transparent);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    background-color: transparent;
+  }
+}
+
 /** Respect a viewer who has asked for less movement. */
 @media (prefers-reduced-motion: reduce) {
   *,

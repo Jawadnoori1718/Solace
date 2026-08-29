@@ -507,6 +507,26 @@ function explainUnserved(
 }
 
 /**
+ * How each factor reads inside a sentence.
+ *
+ * The column headings in the reasoning table are labels — "EPC band G",
+ * "Prepayment meter" — and dropping those into prose produces either awkward
+ * capitals mid-sentence or, lowercased, "epc band g". These are the same facts
+ * phrased to be read aloud, which is how a councillor will use them.
+ */
+const DRIVER_PHRASES: Record<string, string> = {
+  means_tested_benefit: "being in receipt of a means-tested benefit",
+  epc_band: "the condition of the building",
+  health_condition: "a health condition made worse by cold",
+  consumption_shortfall: "using less electricity than the weather requires",
+  prepayment_meter: "being on a prepayment meter",
+  resident_over_sixty_five: "an older resident",
+  child_under_five: "a child under five",
+  self_disconnection: "evenings when the supply went off",
+  case_note_vulnerability: "the council's own case notes",
+};
+
+/**
  * Assemble the plain-English summary attached to a decision.
  *
  * Written by ordinary code from the same numbers the decision used. No model is
@@ -531,7 +551,7 @@ function buildSummary(args: {
     .sort((a, b) => b.contribution - a.contribution)
     .filter((factor) => factor.contribution > 0)
     .slice(0, 3)
-    .map((factor) => factor.label.toLowerCase());
+    .map((factor) => DRIVER_PHRASES[factor.key] ?? factor.label.toLowerCase());
 
   const drivers =
     top.length > 0
@@ -545,7 +565,7 @@ function buildSummary(args: {
 
   return (
     `${kwh.toFixed(1)} kWh of surplus from ${exporter.displayName} was directed to ` +
-    `${recipient.displayName}, costing ${(amountPence / 100).toFixed(2)} pounds. ` +
+    `${recipient.displayName}, costing £${(amountPence / 100).toFixed(2)}. ` +
     `The household scored ${need.score.toFixed(2)} on need. ${drivers}${fairnessClause}`
   );
 }

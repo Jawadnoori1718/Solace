@@ -16,6 +16,7 @@
     "db:seed": "node scripts/seed.ts",
     "allocate": "node scripts/run-allocation.ts",
     "settle": "node scripts/settle.ts",
+    "demo:prepare": "node scripts/demo-prepare.ts",
     "contracts:abi": "node scripts/generate-abi.ts",
     "chain": "hardhat node",
     "contracts:build": "hardhat compile",
