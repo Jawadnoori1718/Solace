@@ -345,13 +345,31 @@ households, and one council pot.
 Requires Node.js 20.9 or later.
 
 ```bash
-npm install          # also generates the Prisma client
-npm run db:migrate   # creates the local SQLite database
+npm install
+npm run demo:setup   # builds everything: chain, data, contract, allocations
 npm run dev
 ```
 
-No configuration is needed to start. The application defaults to demo mode,
-which runs entirely locally.
+`demo:setup` starts a local chain, deploys the token, generates thirty days of
+meter data, runs the allocation engine, settles the history on chain, and holds
+twelve allocations back to settle live.
+
+**None of it touches the internet.** The chain is local, the database is a file,
+and the fonts are downloaded at build time and self-hosted. The only step that
+would use the network is case-note parsing, which is skipped without an API key
+and which the engine does not require. This matters because the venue's wifi is
+not something a demonstration should depend on.
+
+Before demonstrating anything:
+
+```bash
+npm run doctor
+```
+
+It checks every dependency the six beats rely on — the database, the engine, the
+chain, the contract, whether the local ledger and the chain agree, and whether
+anything is left to settle live — and prints the command that fixes each
+problem. Everything it checks has broken at least once during development.
 
 To configure keys and switch to live settlement on Base Sepolia:
 
@@ -361,10 +379,26 @@ cp .env.example .env.local
 
 `.env.example` documents every value and why it exists.
 
+### When things go wrong
+
+The interface degrades rather than breaking. With the chain stopped, the
+dashboard still renders every figure, states that they come from the local
+ledger, and says settlement is paused until the chain returns. The settlement
+stream returns a readable error instead of hanging. No stack trace ever reaches
+the screen.
+
+The pot balance is computed twice by different means — by summing database rows
+and by reading contract storage — and the dashboard says so when they agree. If
+they ever disagree, that is shown prominently rather than hidden, because a
+figure about public money that two sources dispute is the most important thing
+on the page.
+
 ### Useful commands
 
 | Command | What it does |
 | --- | --- |
+| `npm run demo:setup` | Build the entire demonstration from nothing, offline |
+| `npm run doctor` | Check everything the demonstration needs |
 | `npm run dev` | Start the dashboard |
 | `npm run db:migrate` | Apply schema migrations |
 | `npm run db:reset` | Drop and rebuild the database |

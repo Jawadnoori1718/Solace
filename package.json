@@ -25,7 +25,9 @@
     "test:unit": "node --test \"test/unit/**/*.test.ts\"",
     "deploy:local": "hardhat run scripts/deploy.ts --network localhost",
     "deploy:testnet": "hardhat run scripts/deploy.ts --network baseSepolia",
-    "ai:parse": "node scripts/parse-need-signals.ts"
+    "ai:parse": "node scripts/parse-need-signals.ts",
+    "doctor": "node scripts/doctor.ts",
+    "demo:setup": "bash scripts/demo-setup.sh"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.122.0",

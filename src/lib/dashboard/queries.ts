@@ -23,6 +23,8 @@ import {
   toChainName,
   type AllocationReasoning,
 } from "../domain.ts";
+import { chainIsReachable } from "../chain/client.ts";
+import { onChainPotBalancePence } from "../settlement/service.ts";
 import { prisma } from "../db.ts";
 import { DEMO_POT } from "../synthetic/households.ts";
 
@@ -334,6 +336,107 @@ export async function getHouseholds(): Promise<HouseholdRow[]> {
       shareOfConsumption: consumed > 0 ? kwhReceived / consumed : null,
     };
   });
+}
+
+// ---------------------------------------------------------------------------
+// Whether the system is actually working
+// ---------------------------------------------------------------------------
+
+export interface SystemHealth {
+  chainReachable: boolean;
+  contractDeployed: boolean;
+  /** What the chain says is left in the pot, or null if it could not be read. */
+  onChainBalancePence: number | null;
+  /** What the local ledger says is left. */
+  localBalancePence: number;
+  /** True when the two agree. A mismatch is worth showing, not hiding. */
+  ledgerAgrees: boolean;
+  /** Plain-English problems, if any. */
+  problems: string[];
+}
+
+/**
+ * Check the system against itself before drawing anything.
+ *
+ * The pot balance is computed twice by entirely different means — once by
+ * summing database rows, once by reading contract storage. Showing a figure
+ * without saying which source it came from, or without noticing that the two
+ * disagree, would undermine the only thing this dashboard is for.
+ *
+ * Never throws. An unreachable chain is a fact to report, not an exception.
+ */
+export async function getSystemHealth(): Promise<SystemHealth> {
+  const problems: string[] = [];
+
+  const pot = await prisma.pot.findUnique({
+    where: { reference: DEMO_POT.reference },
+  });
+
+  if (pot === null) {
+    return {
+      chainReachable: false,
+      contractDeployed: false,
+      onChainBalancePence: null,
+      localBalancePence: 0,
+      ledgerAgrees: true,
+      problems: ["No pot has been set up yet."],
+    };
+  }
+
+  const [deposits, spend, deployment] = await Promise.all([
+    prisma.deposit.aggregate({
+      where: { potId: pot.id, status: { in: [...SPENT_STATUSES] } },
+      _sum: { amountPence: true },
+    }),
+    prisma.allocation.aggregate({
+      where: { potId: pot.id, settlement: { status: { in: [...SPENT_STATUSES] } } },
+      _sum: { amountPence: true },
+    }),
+    prisma.contractDeployment.findUnique({
+      where: { chain_name: { chain: ACTIVE_CHAIN, name: "SolacePound" } },
+    }),
+  ]);
+
+  const localBalancePence =
+    (deposits._sum.amountPence ?? 0) - (spend._sum.amountPence ?? 0);
+
+  const contractDeployed = deployment !== null;
+  if (!contractDeployed) {
+    problems.push(
+      `SolacePound is not deployed on ${ACTIVE_CHAIN}. Settlement is unavailable until it is.`,
+    );
+  }
+
+  const chainReachable = await chainIsReachable();
+  if (!chainReachable) {
+    problems.push(
+      "The chain could not be reached. The figures below come from the local ledger; settlement is paused until it returns.",
+    );
+  }
+
+  let onChainBalancePence: number | null = null;
+  if (chainReachable && contractDeployed) {
+    onChainBalancePence = await onChainPotBalancePence(pot.reference);
+  }
+
+  const ledgerAgrees =
+    onChainBalancePence === null || onChainBalancePence === localBalancePence;
+
+  if (!ledgerAgrees) {
+    problems.push(
+      `The chain reports a pot balance of ${onChainBalancePence} pence but the local ledger says ${localBalancePence}. ` +
+        `The most likely cause is the chain having been restarted since the pot was funded.`,
+    );
+  }
+
+  return {
+    chainReachable,
+    contractDeployed,
+    onChainBalancePence,
+    localBalancePence,
+    ledgerAgrees,
+    problems,
+  };
 }
 
 // ---------------------------------------------------------------------------

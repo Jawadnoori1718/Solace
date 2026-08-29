@@ -1,5 +1,6 @@
 import { AllocationList } from "@/components/allocation-list";
 import { BalanceChart } from "@/components/balance-chart";
+import { HealthBanner, LedgerAgreement } from "@/components/health-banner";
 import { HouseholdPanel } from "@/components/household-panel";
 import { LiveSettlement } from "@/components/live-settlement";
 import { Masthead } from "@/components/masthead";
@@ -14,8 +15,10 @@ import {
   getPendingCount,
   getPotOverview,
   getRecentAllocations,
+  getSystemHealth,
   type BalancePoint,
   type PotOverview,
+  type SystemHealth,
 } from "@/lib/dashboard/queries";
 
 /**
@@ -34,13 +37,15 @@ export default async function Dashboard() {
     return <NotSeeded />;
   }
 
-  const [allocations, households, series, run, pendingCount] = await Promise.all([
-    getRecentAllocations(12),
-    getHouseholds(),
-    getBalanceSeries(),
-    getLatestRun(),
-    getPendingCount(),
-  ]);
+  const [allocations, households, series, run, pendingCount, health] =
+    await Promise.all([
+      getRecentAllocations(12),
+      getHouseholds(),
+      getBalanceSeries(),
+      getLatestRun(),
+      getPendingCount(),
+      getSystemHealth(),
+    ]);
 
   const warnings = configurationWarnings();
 
@@ -54,7 +59,13 @@ export default async function Dashboard() {
       />
 
       <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-8">
-        <PotSummarySection pot={pot} series={series} />
+        {health.problems.length > 0 && (
+          <div className="mb-6">
+            <HealthBanner health={health} />
+          </div>
+        )}
+
+        <PotSummarySection pot={pot} series={series} health={health} />
 
         <div className="mt-8">
           <LiveSettlement
@@ -109,14 +120,17 @@ export default async function Dashboard() {
 function PotSummarySection({
   pot,
   series,
+  health,
 }: {
   pot: PotOverview;
   series: BalancePoint[];
+  health: SystemHealth;
 }) {
   return (
     <div className="grid gap-6 lg:grid-cols-5">
       <div className="lg:col-span-3">
         <PotSummary pot={pot} />
+        <LedgerAgreement health={health} />
       </div>
 
       <div className="rounded-lg border border-hairline bg-surface p-5 lg:col-span-2">
