@@ -236,6 +236,34 @@ deterministic given the database state, and the model's contribution is a
 stored, inspectable, re-checkable input rather than a live judgement made during
 allocation.
 
+**The separation is tested, not promised.** A test reads every file under
+`src/lib/engine/` and asserts that none of them imports the AI layer or the
+Anthropic SDK, constructs a client, calls `fetch`, imports a network module,
+reads the clock, or uses `Math.random`. If somebody later wires a model into the
+solver, the suite fails.
+
+**Parsing.** A council officer writes what they saw — *"wearing a coat
+indoors"*, *"meter went into emergency credit twice"*. None of that is a
+database field, and no council will restructure a decade of case management to
+make it one. The model turns it into a vulnerability score, a set of indicators
+and a one-line rationale, using strict tool use so the API validates the shape
+before it reaches us. It is told to score only what the note says, and that a
+note describing no difficulty should score low — a parser that finds
+vulnerability everywhere is useless for ranking.
+
+**The report cannot invent a figure.** Every number is computed from the ledger
+by ordinary code and handed to the model as a fixed set of facts. Instructions
+alone are not a guarantee, so the output is checked: every number in the
+generated prose is extracted and compared against the facts it was given, and
+anything unaccounted for is displayed alongside the report rather than quietly
+published. The dashboard states the result either way — *"Every figure in this
+report was checked against the ledger it was generated from."*
+
+Without an API key, both jobs degrade rather than fail: the engine drops the
+case-note factor and renormalises the rest, so a household is never penalised
+for a gap in the council's records, and the report falls back to the most recent
+stored version, labelled as such.
+
 ---
 
 ## What the data showed us
@@ -345,6 +373,7 @@ cp .env.example .env.local
 | `npm run allocate` | Run the allocation engine and show its reasoning |
 | `npm run settle` | Fund the pot and settle allocations on chain |
 | `npm run demo:prepare` | Settle the history, hold back 12 for the live demo |
+| `npm run ai:parse` | Parse council case notes into structured need signals |
 | `npm run test` | Unit tests and contract tests |
 | `npm run test:unit` | Unit tests only, no chain needed |
 | `npm run typecheck` | Type-check without emitting |
@@ -389,6 +418,10 @@ src/lib/engine/             The allocation engine
 src/lib/domain.ts           Shared vocabulary and structured types
 src/lib/config.ts           Runtime configuration and stated assumptions
 src/lib/privacy.ts          The HMAC boundary; nothing else hashes
+src/lib/ai/                The only two places a model is called
+  parse-need-signals.ts      Case notes to structured scores
+  generate-report.ts         Ledger figures to plain English
+  report-facts.ts            The figures, gathered by ordinary code
 src/lib/chain/             viem clients and the committed ABI
 src/lib/settlement/        Allocations to on-chain transactions
 src/lib/db.ts               Database client

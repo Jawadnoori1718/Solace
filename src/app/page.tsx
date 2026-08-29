@@ -4,6 +4,7 @@ import { HouseholdPanel } from "@/components/household-panel";
 import { LiveSettlement } from "@/components/live-settlement";
 import { Masthead } from "@/components/masthead";
 import { PotSummary } from "@/components/pot-summary";
+import { ReportPanel } from "@/components/report-panel";
 import { RunProvenance, UnservedPanel } from "@/components/unserved-panel";
 import { configurationWarnings } from "@/lib/config";
 import {
@@ -80,6 +81,7 @@ export default async function Dashboard() {
               <HouseholdPanel households={households} />
             </section>
 
+            <ReportPanel />
             {run !== null && <UnservedPanel run={run} />}
             {run !== null && <RunProvenance run={run} />}
           </div>
