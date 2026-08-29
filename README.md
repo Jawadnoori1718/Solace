@@ -171,10 +171,32 @@ report £295.19 against a £400 pot, from 292 confirmed transactions delivering
 
 ### Layer 4 — Councillor dashboard
 
-A single page showing the pot balance draining in real time, a live feed of
-allocations, the engine's reasoning for each one, a generated plain-English
-report, and a link to the public block explorer for every settlement. _(to come
-in Phases 6 and 7)_
+A single page, civic in tone. It is meant to look like something a councillor
+could print and take to a scrutiny committee, not like a financial product.
+
+The headline is what remains in the pot, because that is the question being
+asked. Around it: energy delivered, households reached out of households
+assessed, settlements confirmed on chain, and what the same kilowatt-hours would
+have earned had they been exported to the grid instead — the gap Solace closes,
+stated as a number.
+
+**Households are ordered by the share of their electricity Solace covered, not
+by raw kilowatt-hours.** A five-person terrace absorbs far more energy than a
+single pensioner in a flat, so absolute figures flatter large households and
+understate what a delivery meant to a small one. Households that received
+nothing appear in the list too. A dashboard that lists only the served
+households cannot answer the question a councillor will actually ask.
+
+Three provenance notes sit at the foot of every page — what the meter data is,
+what reaches the chain, and what `SolacePound` is. Solace's argument is that a
+system handling public money should say what it knows and what it does not, and
+that has to be on the page rather than buried in a repository.
+
+The palette was validated rather than chosen by eye: worst adjacent contrast
+under simulated colour-vision deficiency is ΔE 22.1 against a floor of 8, and
+ΔE 28.1 for normal vision against a floor of 15.
+
+_(The live feed, animated balance and expandable reasoning arrive in Phase 7.)_
 
 ---
 

@@ -48,6 +48,20 @@ export const ChainName = {
 } as const;
 export type ChainName = (typeof ChainName)[keyof typeof ChainName];
 
+/**
+ * Narrow a database string to a known chain.
+ *
+ * Columns come back as plain strings because SQLite has no enums. Anything
+ * unrecognised becomes NONE rather than throwing: an unfamiliar value in one
+ * row should mean "no explorer link for this row", not a blank dashboard.
+ */
+export function toChainName(value: string | null | undefined): ChainName {
+  if (value !== null && value !== undefined && value in ChainName) {
+    return value as ChainName;
+  }
+  return ChainName.NONE;
+}
+
 export const SettlementStatus = {
   /** Created, not yet sent to a node. */
   PENDING: "PENDING",
