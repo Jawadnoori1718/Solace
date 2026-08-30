@@ -216,9 +216,30 @@ export function findUnverifiedFigures(
     permit(repeat.kwhReceived);
   }
 
-  // Years and dates in the period are legitimate and are not quantities.
-  for (const token of [facts.periodStart, facts.periodEnd, facts.potReference]) {
-    for (const match of token.matchAll(/\d+/g)) permitted.add(match[0]);
+  // Numbers that appear inside the prose the model was given are supported by
+  // the facts as surely as the numeric fields are. The engine's own reasoning
+  // quotes need scores — "scored this household 0.69 on need" — and the model
+  // is right to repeat them. Scanning only the numeric fields flagged those as
+  // fabricated, which is the worst kind of false positive: it teaches the
+  // reader to ignore the check that exists to catch real invention.
+  const prose = [
+    facts.periodStart,
+    facts.periodEnd,
+    facts.potReference,
+    facts.potName,
+    facts.councilName,
+    facts.fundingSource,
+    ...facts.repeatRecipients.map((repeat) => repeat.reason),
+    ...facts.repeatRecipients.map((repeat) => repeat.reference),
+    ...facts.repeatRecipients.map((repeat) => repeat.locality),
+  ];
+
+  for (const token of prose) {
+    for (const match of token.matchAll(/\d[\d,]*(?:\.\d+)?/g)) {
+      const raw = match[0];
+      permitted.add(raw);
+      permitted.add(raw.replace(/,/g, ""));
+    }
   }
 
   const unverified: string[] = [];

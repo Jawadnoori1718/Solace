@@ -178,6 +178,16 @@ describe("checking a report against its facts", () => {
     assert.deepEqual(findUnverifiedFigures(narrative, FACTS), []);
   });
 
+  it("accepts a need score quoted from the engine's own reasoning", () => {
+    // The facts hand the model a sentence containing "0.73 on need". Repeating
+    // it is correct, and flagging it as fabricated would teach a reader to
+    // ignore the check entirely.
+    const narrative =
+      "One household in Holbeck was served 76 times; the engine scored it 0.73 on need.";
+
+    assert.deepEqual(findUnverifiedFigures(narrative, FACTS), []);
+  });
+
   it("accepts dates from the reporting period", () => {
     const narrative =
       "Between 2026-07-30 and 2026-08-29 the pot delivered 374.3 kWh.";

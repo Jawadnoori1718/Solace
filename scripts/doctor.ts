@@ -87,14 +87,26 @@ async function main(): Promise<void> {
     prisma.allocation.count(),
   ]);
 
+  // A reset demonstration has no allocations, and that is a valid, deliberate
+  // state — it is the state you want to be in before performing the six beats
+  // from the beginning. Reporting it in red would have somebody seeing BLOCKED
+  // five minutes before going on stage and assuming the machine was broken.
+  const depositTotal = await prisma.deposit.aggregate({
+    where: { status: { in: [...SPENT_STATUSES] } },
+    _sum: { amountPence: true },
+  });
+  const freshStart =
+    (depositTotal._sum.amountPence ?? 0) === 0 && allocations === 0;
+
   checks.push({
     name: "Allocation",
-    level: run !== null && allocations > 0 ? "ready" : "blocked",
-    detail:
-      run === null
-        ? "The engine has not been run."
+    level: freshStart ? "ready" : run !== null && allocations > 0 ? "ready" : "blocked",
+    detail: freshStart
+      ? "Nothing allocated yet — the demonstration is at its opening state, ready to perform from beat one."
+      : run === null
+        ? "The engine has not been run, but money has been committed."
         : `${allocations} decisions, engine ${run.engineVersion}, digest ${run.outputDigest.slice(0, 12)}.`,
-    fix: run === null ? "npm run allocate" : undefined,
+    fix: freshStart || run !== null ? undefined : "press Run the engine, or npm run allocate",
   });
 
   // -- The chain ------------------------------------------------------------
@@ -148,24 +160,34 @@ async function main(): Promise<void> {
     const local =
       (deposits._sum.amountPence ?? 0) - (spend._sum.amountPence ?? 0);
 
+    // Only a chain holding LESS than the ledger is a problem: it means money
+    // the ledger records as committed is not there. A chain holding more is
+    // ordinary — earlier runs of the demonstration are still on it.
+    const chainShort = onChain !== null && onChain < local;
+
     checks.push({
       name: "Ledger",
-      level: onChain === local ? "ready" : "blocked",
-      detail:
-        onChain === local
+      level: chainShort ? "blocked" : "ready",
+      detail: chainShort
+        ? `The database says ${formatPence(local)} but the chain holds only ${formatPence(onChain ?? 0)}. Money the ledger records is missing from the chain.`
+        : onChain === local
           ? `The database and the chain both report ${formatPence(local)} remaining.`
-          : `The database says ${formatPence(local)} but the chain says ${onChain === null ? "unknown" : formatPence(onChain)}. The chain was probably restarted.`,
-      fix: onChain === local ? undefined : "npm run demo:prepare",
+          : `The database reports ${formatPence(local)} for this run. The chain holds ${formatPence(onChain ?? 0)}, which includes earlier runs.`,
+      fix: chainShort ? "npm run demo:prepare" : undefined,
     });
 
     checks.push({
       name: "Live beat",
-      level: pending > 0 ? "ready" : "warn",
-      detail:
-        pending > 0
-          ? `${pending} allocations are held back to settle on stage.`
-          : "Nothing is left to settle live. The demonstration would have no beat four.",
-      fix: pending > 0 ? undefined : "npm run demo:prepare",
+      level: freshStart || pending > 0 ? "ready" : "warn",
+      detail: freshStart
+        ? "Beat four will have plenty to settle once the engine has run."
+        : pending > 0
+          ? `${pending} allocations are waiting to settle on stage.`
+          : "Everything is settled, so there is nothing left to show for beat four.",
+      fix:
+        freshStart || pending > 0
+          ? undefined
+          : "press Start over on the dashboard, or npm run demo:prepare",
     });
   }
 
