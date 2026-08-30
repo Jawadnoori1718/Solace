@@ -419,13 +419,18 @@ export async function getSystemHealth(): Promise<SystemHealth> {
     onChainBalancePence = await onChainPotBalancePence(pot.reference);
   }
 
+  // Only a chain holding LESS than the ledger claims is a discrepancy: it means
+  // money the ledger says was committed is not there. A chain holding more is
+  // ordinary — the demonstration has been run before and those earlier
+  // transactions are still on it. Reporting that in red taught the operator to
+  // ignore the one warning that actually matters.
   const ledgerAgrees =
-    onChainBalancePence === null || onChainBalancePence === localBalancePence;
+    onChainBalancePence === null || onChainBalancePence >= localBalancePence;
 
   if (!ledgerAgrees) {
     problems.push(
-      `The chain reports a pot balance of ${onChainBalancePence} pence but the local ledger says ${localBalancePence}. ` +
-        `The most likely cause is the chain having been restarted since the pot was funded.`,
+      `The chain holds ${onChainBalancePence} pence against a local ledger of ${localBalancePence}. ` +
+        `Money the ledger records as committed is not on the chain — most likely the chain was restarted after the pot was funded.`,
     );
   }
 
@@ -511,6 +516,195 @@ export async function getPendingCount(): Promise<number> {
 }
 
 // ---------------------------------------------------------------------------
+// What the roofs are doing right now
+// ---------------------------------------------------------------------------
+
+export interface LiveExporter {
+  reference: string;
+  locality: string;
+  displayName: string;
+  capacityKw: number;
+  /** Export in the half-hour currently in progress, in kWh. */
+  nowKwh: number;
+  /** Everything exported so far today. */
+  todayKwh: number;
+  /** Today's export by half-hour, from midnight. */
+  series: number[];
+}
+
+export interface LiveExport {
+  /** The half-hour currently in progress, as an ISO instant. */
+  intervalStart: string;
+  /** Position of that half-hour in the day, 0 to 47. */
+  periodIndex: number;
+  exporters: LiveExporter[];
+  /** Combined surplus in the current half-hour. */
+  surplusNowKwh: number;
+  /** Combined surplus so far today. */
+  surplusTodayKwh: number;
+  /** True when the sun is down and nothing is being exported. */
+  afterDark: boolean;
+  /** The most recent half-hour that produced anything, for the after-dark case. */
+  peakToday: { periodIndex: number; kwh: number } | null;
+  /** The latest date the seeded data covers. */
+  dataDate: string;
+  /**
+   * True when nothing had been generated yet on the current day, so the curves
+   * shown are the most recent day that did produce.
+   *
+   * Demonstrations happen at whatever hour they happen. At three in the morning
+   * today's curve is empty, and an empty panel says nothing useful about a
+   * solar scheme. Falling back to the last real day keeps the panel meaningful
+   * without inventing a single reading.
+   */
+  showingPreviousDay: boolean;
+}
+
+/**
+ * What the three roofs are exporting in the half-hour currently in progress.
+ *
+ * Beat two of the demonstration. The reading is real seeded data for the actual
+ * current half-hour, not a loop — so at four in the afternoon it shows a
+ * genuine afternoon figure and at ten at night it shows zero and says why.
+ * Faking daylight would be the easiest thing in the world here and would make
+ * every other honesty claim on the page worthless.
+ */
+export async function getLiveExport(): Promise<LiveExport | null> {
+  const bounds = await prisma.meterReading.aggregate({
+    _max: { intervalStart: true },
+  });
+  if (bounds._max.intervalStart === null) return null;
+
+  // The seeded window ends today, so "today" is its last day. If the clock has
+  // run past the seeded data, fall back to the final seeded day rather than
+  // showing an empty panel.
+  const latest = bounds._max.intervalStart;
+  const now = new Date();
+  const useToday =
+    now.toISOString().slice(0, 10) <= latest.toISOString().slice(0, 10);
+
+  const day = useToday
+    ? new Date(
+        Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
+      )
+    : new Date(
+        Date.UTC(
+          latest.getUTCFullYear(),
+          latest.getUTCMonth(),
+          latest.getUTCDate(),
+        ),
+      );
+
+  let periodIndex = useToday
+    ? Math.min(47, now.getUTCHours() * 2 + (now.getUTCMinutes() >= 30 ? 1 : 0))
+    : 47;
+
+  // If nothing has been generated yet today — the small hours — step back to
+  // the previous day and show all of it. Nothing is fabricated; the panel just
+  // stops pointing at a stretch of night.
+  let showingPreviousDay = false;
+  let activeDay = day;
+
+  const producedSoFar = await prisma.meterReading.aggregate({
+    where: {
+      channel: MeterChannel.EXPORT,
+      intervalStart: {
+        gte: day,
+        lt: new Date(day.getTime() + (periodIndex + 1) * 30 * 60_000),
+      },
+    },
+    _sum: { kwh: true },
+  });
+
+  if ((producedSoFar._sum.kwh ?? 0) <= 0) {
+    activeDay = new Date(day.getTime() - 86_400_000);
+    periodIndex = 47;
+    showingPreviousDay = true;
+  }
+
+  const dayEnd = new Date(activeDay.getTime() + 86_400_000);
+
+  const [exporterHouseholds, readings] = await Promise.all([
+    prisma.household.findMany({
+      where: { role: HouseholdRole.EXPORTER },
+      orderBy: { reference: "asc" },
+    }),
+    prisma.meterReading.findMany({
+      where: {
+        channel: MeterChannel.EXPORT,
+        intervalStart: { gte: activeDay, lt: dayEnd },
+      },
+      orderBy: { intervalStart: "asc" },
+    }),
+  ]);
+
+  const byHousehold = new Map<string, number[]>();
+  for (const reading of readings) {
+    const index = Math.floor(
+      (reading.intervalStart.getTime() - activeDay.getTime()) / (30 * 60_000),
+    );
+    if (index < 0 || index > 47) continue;
+
+    let series = byHousehold.get(reading.householdId);
+    if (series === undefined) {
+      series = new Array<number>(48).fill(0);
+      byHousehold.set(reading.householdId, series);
+    }
+    series[index] = reading.kwh;
+  }
+
+  const exporters: LiveExporter[] = exporterHouseholds.map((household) => {
+    const series = byHousehold.get(household.id) ?? new Array<number>(48).fill(0);
+
+    return {
+      reference: household.reference,
+      locality: household.locality,
+      displayName: household.displayName,
+      capacityKw: household.solarCapacityKw ?? 0,
+      nowKwh: round2(series[periodIndex] ?? 0),
+      // Only what has actually happened so far today, not the whole day.
+      todayKwh: round1(
+        series.slice(0, periodIndex + 1).reduce((sum, kwh) => sum + kwh, 0),
+      ),
+      series: series.map((kwh) => round2(kwh)),
+    };
+  });
+
+  const surplusNowKwh = round2(
+    exporters.reduce((sum, exporter) => sum + exporter.nowKwh, 0),
+  );
+
+  // The brightest half-hour so far, so an evening demonstration still has a
+  // real figure to point at rather than a row of zeroes.
+  let peakToday: { periodIndex: number; kwh: number } | null = null;
+  for (let index = 0; index <= periodIndex; index++) {
+    const total = exporters.reduce(
+      (sum, exporter) => sum + (exporter.series[index] ?? 0),
+      0,
+    );
+    if (peakToday === null || total > peakToday.kwh) {
+      peakToday = { periodIndex: index, kwh: round2(total) };
+    }
+  }
+
+  return {
+    intervalStart: new Date(
+      activeDay.getTime() + periodIndex * 30 * 60_000,
+    ).toISOString(),
+    periodIndex,
+    exporters,
+    surplusNowKwh,
+    surplusTodayKwh: round1(
+      exporters.reduce((sum, exporter) => sum + exporter.todayKwh, 0),
+    ),
+    afterDark: surplusNowKwh < 0.01,
+    peakToday: peakToday !== null && peakToday.kwh > 0 ? peakToday : null,
+    dataDate: activeDay.toISOString().slice(0, 10),
+    showingPreviousDay,
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Where the energy actually went
 // ---------------------------------------------------------------------------
 
@@ -538,6 +732,10 @@ export interface FlowGraph {
   recipients: FlowNode[];
   links: FlowLink[];
   totalKwh: number;
+  /** Decisions the engine made. */
+  decisionCount: number;
+  /** How many of those have been settled on chain. */
+  settledCount: number;
 }
 
 /**
@@ -549,9 +747,7 @@ export interface FlowGraph {
  * single most contestable decision the engine makes.
  */
 export async function getEnergyFlowGraph(): Promise<FlowGraph> {
-  const settled = { in: [...SPENT_STATUSES] };
-
-  const [households, allocations, run] = await Promise.all([
+  const [households, allocations, run, settledCount] = await Promise.all([
     prisma.household.findMany({
       orderBy: { reference: "asc" },
       include: {
@@ -561,13 +757,19 @@ export async function getEnergyFlowGraph(): Promise<FlowGraph> {
         },
       },
     }),
+    // Every decision the engine made, not only the settled ones. Between
+    // running the engine and settling, a graph filtered to settlements is
+    // empty — which would show a councillor nothing at exactly the moment
+    // they have just watched the engine decide.
     prisma.allocation.findMany({
-      where: { settlement: { status: settled } },
       include: { exporter: true, recipient: true },
     }),
     prisma.allocationRun.findFirst({
       orderBy: { createdAt: "desc" },
       select: { assessmentsJson: true },
+    }),
+    prisma.allocation.count({
+      where: { settlement: { status: { in: [...SPENT_STATUSES] } } },
     }),
   ]);
 
@@ -641,6 +843,8 @@ export async function getEnergyFlowGraph(): Promise<FlowGraph> {
     recipients,
     links,
     totalKwh: round1([...recipientKwh.values()].reduce((sum, k) => sum + k, 0)),
+    decisionCount: allocations.length,
+    settledCount,
   };
 }
 
@@ -718,4 +922,14 @@ export async function getBalanceSeries(): Promise<BalancePoint[]> {
 /** Round to one decimal place, for figures shown to a person. */
 function round1(value: number): number {
   return Math.round(value * 10) / 10;
+}
+
+/** Round to two decimal places, for half-hourly meter figures. */
+function round2(value: number): number {
+  return Math.round(value * 100) / 100;
+}
+
+/** How many accountability reports have been generated for the demo pot. */
+export async function getReportCount(): Promise<number> {
+  return prisma.report.count();
 }

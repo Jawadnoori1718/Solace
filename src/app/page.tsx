@@ -1,4 +1,8 @@
 import { AllocationList } from "@/components/allocation-list";
+import { DemoSteps } from "@/components/demo-steps";
+import { DepositControl } from "@/components/deposit-control";
+import { LiveExport } from "@/components/live-export";
+import { RunAllocation } from "@/components/run-allocation";
 import { BalanceChart } from "@/components/balance-chart";
 import { EnergyFlow } from "@/components/energy-flow";
 import { HealthBanner, LedgerAgreement } from "@/components/health-banner";
@@ -16,8 +20,10 @@ import {
   getHouseholds,
   getLatestRun,
   getPendingCount,
+  getLiveExport,
   getPotOverview,
   getRecentAllocations,
+  getReportCount,
   getSystemHealth,
 } from "@/lib/dashboard/queries";
 
@@ -42,16 +48,27 @@ export default async function Dashboard() {
     return <NotSeeded />;
   }
 
-  const [allocations, households, series, run, pendingCount, health, flow] =
-    await Promise.all([
-      getRecentAllocations(12),
-      getHouseholds(),
-      getBalanceSeries(),
-      getLatestRun(),
-      getPendingCount(),
-      getSystemHealth(),
-      getEnergyFlowGraph(),
-    ]);
+  const [
+    allocations,
+    households,
+    series,
+    run,
+    pendingCount,
+    health,
+    flow,
+    liveExport,
+    reportCount,
+  ] = await Promise.all([
+    getRecentAllocations(12),
+    getHouseholds(),
+    getBalanceSeries(),
+    getLatestRun(),
+    getPendingCount(),
+    getSystemHealth(),
+    getEnergyFlowGraph(),
+    getLiveExport(),
+    getReportCount(),
+  ]);
 
   const warnings = configurationWarnings();
 
@@ -72,7 +89,28 @@ export default async function Dashboard() {
           </div>
         )}
 
-        <EnergyFlow graph={flow} />
+        <DemoSteps
+          state={{
+            deposited: pot.depositedPence > 0,
+            allocated: (run?.decisionCount ?? 0) > 0,
+            settled: pot.settlementsConfirmed > 0,
+            reported: reportCount > 0,
+            verifiable: pot.latestSettlement !== null,
+          }}
+        />
+
+        <div className="mt-8 grid items-start gap-8 lg:grid-cols-2">
+          <DepositControl depositedPence={pot.depositedPence} />
+          <LiveExport initial={liveExport} />
+        </div>
+
+        <div className="mt-8">
+          <RunAllocation canRun={pot.depositedPence > 0} />
+        </div>
+
+        <div className="mt-8">
+          <EnergyFlow graph={flow} />
+        </div>
 
         <div className="mt-8">
           <LiveSettlement

@@ -4,6 +4,13 @@ Six beats, about four minutes. Written to be read beforehand, not from.
 
 ---
 
+**Everything below is performed in the browser.** There is a step bar across
+the top of the page showing the six beats and which one is next, and a
+**Start over** button that clears deposits, allocations and settlements so the
+whole thing can be run again. Rehearse it twice.
+
+---
+
 ## Setup, fifteen minutes before
 
 ```bash
@@ -25,14 +32,15 @@ If anything reads `BLOCKED`, `doctor` prints the command that fixes it.
 
 ## Beat 1 — A council deposits into a winter pot
 
-*"Leeds City Council has committed four hundred pounds from its Household
-Support Fund to a winter pot. That deposit is a transaction — here it is."*
+*"Leeds City Council is committing four hundred pounds from its Household
+Support Fund to a winter pot. Watch."*
 
-The masthead names the council, the pot and the funding stream. The headline
-figure is what remains.
+In **Commit council money**, type an amount — or take one from the room — and
+press **Deposit into the pot**. The button says "Confirming on chain…" while it
+waits for a real receipt, then returns the transaction hash.
 
-The pot was funded on chain during setup. If you want the deposit to happen
-live, run `npm run demo:prepare` immediately before, which re-funds it.
+The headline figure above updates. That is beat one, done live, with a figure
+somebody in the room chose.
 
 ---
 
@@ -60,7 +68,14 @@ page. Saying it before anyone asks is worth more than the data being real.
 *"Eight households nearby need help. The engine decides which of them receives
 that surplus — and it will tell you exactly why."*
 
-Open the first allocation. The reasoning panel is already expanded.
+Press **Run the engine**.
+
+It shows its working in three steps: every household assessed with its need
+score and whether it cleared the threshold; the window solved, with the digests;
+and then a replay proving the same input produces byte-identical output. Let the
+assessments finish appearing before you talk over them.
+
+Then scroll to **Recent allocations** and open the first row.
 
 Walk through one factor, not all nine: *"This household is in a band G property.
 That factor carries a published weight of 0.14, and it contributed 0.14 to a

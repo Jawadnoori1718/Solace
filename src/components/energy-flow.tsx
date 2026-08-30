@@ -176,12 +176,18 @@ export function EnergyFlow({ graph }: { graph: FlowGraph }) {
             const served = node.kwh > 0;
 
             return (
-              <g key={node.reference} opacity={served ? 1 : 0.42}>
+              <g key={node.reference} opacity={served ? 1 : node.eligible === true ? 0.6 : 0.42}>
                 <circle
                   cx={RECEIVE_X}
                   cy={y}
                   r={served ? 8 : 6}
-                  fill={served ? "var(--color-warmth)" : "var(--color-edge)"}
+                  fill={
+                    served
+                      ? "var(--color-warmth)"
+                      : node.eligible === true
+                        ? "var(--color-warmth)"
+                        : "var(--color-edge)"
+                  }
                   stroke="var(--color-surface)"
                   strokeWidth="3"
                 />
@@ -204,7 +210,9 @@ export function EnergyFlow({ graph }: { graph: FlowGraph }) {
                 >
                   {served
                     ? `${formatKwh(node.kwh, 0)} · ${node.sharePercent}% of its bill`
-                    : `need ${node.needScore?.toFixed(2) ?? "—"} · below the threshold`}
+                    : node.eligible === true
+                      ? `need ${node.needScore?.toFixed(2) ?? "—"} · eligible, nothing allocated yet`
+                      : `need ${node.needScore?.toFixed(2) ?? "—"} · below the threshold`}
                 </text>
               </g>
             );
@@ -217,11 +225,12 @@ export function EnergyFlow({ graph }: { graph: FlowGraph }) {
           <span className="font-medium text-body">
             {formatKwh(graph.totalKwh)}
           </span>{" "}
-          delivered across {links.length} exporter-to-household pairings.
+          allocated across {links.length} exporter-to-household pairings.
         </p>
         <p>
-          Every line is a settled transaction on a public ledger, not an
-          estimate.
+          {graph.settledCount === graph.decisionCount
+            ? "Every line is a settled transaction on a public ledger, not an estimate."
+            : `${graph.settledCount.toLocaleString("en-GB")} of ${graph.decisionCount.toLocaleString("en-GB")} decisions have been settled on chain so far.`}
         </p>
       </div>
     </figure>
