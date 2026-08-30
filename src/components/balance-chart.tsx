@@ -27,7 +27,7 @@ import type { BalancePoint } from "@/lib/dashboard/queries";
 export function BalanceChart({ series }: { series: BalancePoint[] }) {
   if (series.length === 0) {
     return (
-      <p className="py-12 text-center text-sm text-ink-muted">
+      <p className="py-12 text-center text-sm text-body-muted">
         Nothing has been settled yet, so there is no balance to plot.
       </p>
     );
@@ -58,7 +58,7 @@ export function BalanceChart({ series }: { series: BalancePoint[] }) {
           <XAxis
             dataKey="date"
             tickFormatter={shortDate}
-            tick={{ fill: "var(--color-ink-muted)", fontSize: 11 }}
+            tick={{ fill: "var(--color-body-muted)", fontSize: 11 }}
             tickLine={false}
             axisLine={{ stroke: "var(--color-hairline)" }}
             minTickGap={28}
@@ -67,7 +67,7 @@ export function BalanceChart({ series }: { series: BalancePoint[] }) {
           <YAxis
             domain={[0, opening]}
             tickFormatter={(pence: number) => `£${Math.round(pence / 100)}`}
-            tick={{ fill: "var(--color-ink-muted)", fontSize: 11 }}
+            tick={{ fill: "var(--color-body-muted)", fontSize: 11 }}
             tickLine={false}
             axisLine={false}
             width={46}
@@ -120,7 +120,7 @@ function BalanceTooltip({
 
   return (
     <div className="rounded-md border border-hairline bg-surface px-3 py-2 shadow-lg">
-      <p className="text-xs font-medium text-ink">{longDate(point.date)}</p>
+      <p className="text-xs font-medium text-body">{longDate(point.date)}</p>
       <dl className="mt-1.5 space-y-0.5 text-xs">
         <Row label="Remaining" value={formatPence(point.balancePence)} strong />
         <Row label="Spent that day" value={formatPence(point.spentPence)} />
@@ -141,9 +141,9 @@ function Row({
 }) {
   return (
     <div className="flex items-baseline justify-between gap-6">
-      <dt className="text-ink-muted">{label}</dt>
+      <dt className="text-body-muted">{label}</dt>
       <dd
-        className={`tabular ${strong === true ? "font-semibold text-ink" : "text-ink-secondary"}`}
+        className={`tabular ${strong === true ? "font-semibold text-body" : "text-body-secondary"}`}
       >
         {value}
       </dd>

@@ -14,6 +14,9 @@
  * decisions from scratch.
  */
 
+// Must be first: loads .env.local before any module reads process.env.
+import "../src/lib/env-first.ts";
+
 import {
   DEMO_POT,
   EXPORTERS,
@@ -32,11 +35,8 @@ import {
 } from "../src/lib/synthetic/weather.ts";
 import { HouseholdRole, MeterChannel } from "../src/lib/domain.ts";
 import { formatKwh, formatPence } from "../src/lib/format.ts";
-import { loadEnvFiles } from "../src/lib/env-file.ts";
 import { prisma } from "../src/lib/db.ts";
 import { recipientHash } from "../src/lib/privacy.ts";
-
-loadEnvFiles();
 
 /** Days of history to generate before the end date. */
 const HISTORY_DAYS = 30;

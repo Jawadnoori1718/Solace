@@ -25,11 +25,12 @@ export function UnservedPanel({ run }: { run: RunSummary }) {
 
   return (
     <section className="rounded-lg border border-hairline bg-surface">
-      <div className="border-b border-hairline px-5 py-4">
-        <h2 className="font-display text-lg font-semibold text-ink">
+      <div className="border-b border-hairline px-5 py-5">
+        <div className="mb-3 h-[3px] w-9 rounded-full bg-warmth" aria-hidden="true" />
+        <h2 className="section-title text-xl text-body">
           Households that received nothing
         </h2>
-        <p className="mt-0.5 text-xs text-ink-muted">
+        <p className="mt-0.5 text-xs text-body-muted">
           Every decision the engine made against a household, with its reason.
         </p>
       </div>
@@ -41,25 +42,25 @@ export function UnservedPanel({ run }: { run: RunSummary }) {
           return (
             <li key={entry.recipientReference} className="px-5 py-3.5">
               <div className="flex items-baseline justify-between gap-4">
-                <p className="tabular text-sm font-medium text-ink">
+                <p className="tabular text-sm font-medium text-body">
                   {entry.recipientReference}
                 </p>
                 {assessment !== undefined && (
-                  <p className="shrink-0 text-xs text-ink-muted">
+                  <p className="shrink-0 text-xs text-body-muted">
                     need{" "}
-                    <span className="tabular text-ink-secondary">
+                    <span className="tabular text-body-secondary">
                       {assessment.needScore.toFixed(2)}
                     </span>
                   </p>
                 )}
               </div>
 
-              <p className="mt-1 text-xs leading-relaxed text-ink-secondary">
+              <p className="mt-1 text-xs leading-relaxed text-body-secondary">
                 {entry.reason}
               </p>
 
               {assessment !== undefined && assessment.expectedDailyKwh > 0 && (
-                <p className="mt-1 text-xs text-ink-muted tabular">
+                <p className="mt-1 text-xs text-body-muted tabular">
                   Using {assessment.actualDailyKwh.toFixed(1)} kWh a day against{" "}
                   {assessment.expectedDailyKwh.toFixed(1)} expected for this
                   weather.
@@ -83,10 +84,11 @@ export function UnservedPanel({ run }: { run: RunSummary }) {
 export function RunProvenance({ run }: { run: RunSummary }) {
   return (
     <section className="rounded-lg border border-hairline bg-surface px-5 py-4">
-      <h2 className="font-display text-base font-semibold text-ink">
+      <div className="mb-3 h-[3px] w-9 rounded-full bg-warmth" aria-hidden="true" />
+      <h2 className="section-title text-xl text-body">
         This allocation run
       </h2>
-      <p className="mt-0.5 text-xs text-ink-muted">
+      <p className="mt-0.5 text-xs text-body-muted">
         Deterministic. The same input always produces the same decisions, and
         these digests are how anyone can check that.
       </p>
@@ -123,9 +125,9 @@ function Entry({
   return (
     <div>
       <div className="flex items-baseline justify-between gap-4">
-        <dt className="shrink-0 text-ink-muted">{label}</dt>
+        <dt className="shrink-0 text-body-muted">{label}</dt>
         <dd
-          className={`min-w-0 text-right text-ink-secondary ${
+          className={`min-w-0 text-right text-body-secondary ${
             mono === true ? "tabular break-all text-[0.6875rem]" : "tabular"
           }`}
         >
@@ -133,7 +135,7 @@ function Entry({
         </dd>
       </div>
       {note !== undefined && (
-        <p className="mt-0.5 text-right text-ink-muted">{note}</p>
+        <p className="mt-0.5 text-right text-body-muted">{note}</p>
       )}
     </div>
   );

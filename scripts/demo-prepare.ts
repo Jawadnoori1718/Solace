@@ -13,10 +13,12 @@
  * "Settle now" submits real transactions and waits for real receipts.
  */
 
+// Must be first: loads .env.local before any module reads process.env.
+import "../src/lib/env-first.ts";
+
 import { ACTIVE_CHAIN, CHAINS } from "../src/lib/config.ts";
 import { DEMO_POT } from "../src/lib/synthetic/households.ts";
 import { formatKwh, formatPence } from "../src/lib/format.ts";
-import { loadEnvFiles } from "../src/lib/env-file.ts";
 import { prisma } from "../src/lib/db.ts";
 import { SPENT_STATUSES } from "../src/lib/domain.ts";
 import {
@@ -25,8 +27,6 @@ import {
   resolveChainContext,
   settleAllocation,
 } from "../src/lib/settlement/service.ts";
-
-loadEnvFiles();
 
 /** How many allocations to leave unsettled, for the live demonstration. */
 const DEFAULT_HOLD = 12;

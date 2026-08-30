@@ -35,14 +35,14 @@ export function HealthBanner({ health }: { health: SystemHealth }) {
           : "Some parts of the system are unavailable"}
       </h2>
 
-      <ul className="mt-2 space-y-1 text-sm text-ink-secondary">
+      <ul className="mt-2 space-y-1 text-sm text-body-secondary">
         {health.problems.map((problem) => (
           <li key={problem}>{problem}</li>
         ))}
       </ul>
 
       {!health.chainReachable && isDemoMode && (
-        <p className="mt-2 text-xs text-ink-muted">
+        <p className="mt-2 text-xs text-body-muted">
           Demo mode settles on a local chain. Start it with{" "}
           <code className="rounded bg-sunken px-1.5 py-0.5">npm run chain</code>,
           then{" "}
@@ -67,7 +67,7 @@ export function LedgerAgreement({ health }: { health: SystemHealth }) {
   if (health.onChainBalancePence === null || !health.ledgerAgrees) return null;
 
   return (
-    <p className="mt-4 flex items-center gap-2 text-xs text-ink-muted">
+    <p className="mt-4 flex items-center gap-2 text-xs text-body-muted">
       <span
         className="inline-block h-1.5 w-1.5 rounded-full bg-good"
         aria-hidden="true"

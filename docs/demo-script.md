@@ -45,6 +45,11 @@ Point at **Worth on the grid**. That is what the delivered energy would have
 earned had it been sold to the grid instead — the gap Solace closes, as a
 number.
 
+Then scroll to **Where the energy went**. This is the picture worth pausing on:
+three roofs on the left, eight homes on the right, and the thickness of every
+line is the energy that actually moved. If somebody in the room takes one image
+away, make it this one.
+
 Say plainly that the meter data is simulated. It is labelled at the foot of the
 page. Saying it before anyone asks is worth more than the data being real.
 

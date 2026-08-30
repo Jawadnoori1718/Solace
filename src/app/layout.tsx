@@ -48,7 +48,7 @@ export default function RootLayout({
       lang="en-GB"
       className={`${sourceSerif.variable} ${inter.variable} h-full`}
     >
-      <body className="min-h-full flex flex-col bg-paper text-ink">
+      <body className="min-h-full flex flex-col bg-paper text-body">
         {children}
       </body>
     </html>

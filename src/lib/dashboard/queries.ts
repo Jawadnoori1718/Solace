@@ -511,6 +511,140 @@ export async function getPendingCount(): Promise<number> {
 }
 
 // ---------------------------------------------------------------------------
+// Where the energy actually went
+// ---------------------------------------------------------------------------
+
+export interface FlowNode {
+  reference: string;
+  locality: string;
+  /** kWh exported or received across the window. */
+  kwh: number;
+  /** Exporters only: installed array capacity. */
+  capacityKw?: number;
+  /** Recipients only. */
+  needScore?: number;
+  eligible?: boolean;
+  sharePercent?: number;
+}
+
+export interface FlowLink {
+  from: string;
+  to: string;
+  kwh: number;
+}
+
+export interface FlowGraph {
+  exporters: FlowNode[];
+  recipients: FlowNode[];
+  links: FlowLink[];
+  totalKwh: number;
+}
+
+/**
+ * The whole pilot as a graph: three roofs on one side, eight homes on the
+ * other, and the energy that moved between them.
+ *
+ * Households that were assessed and found ineligible are included with no
+ * links. Leaving them out would make the picture prettier and would hide the
+ * single most contestable decision the engine makes.
+ */
+export async function getEnergyFlowGraph(): Promise<FlowGraph> {
+  const settled = { in: [...SPENT_STATUSES] };
+
+  const [households, allocations, run] = await Promise.all([
+    prisma.household.findMany({
+      orderBy: { reference: "asc" },
+      include: {
+        readings: {
+          where: { channel: MeterChannel.CONSUMPTION },
+          select: { kwh: true },
+        },
+      },
+    }),
+    prisma.allocation.findMany({
+      where: { settlement: { status: settled } },
+      include: { exporter: true, recipient: true },
+    }),
+    prisma.allocationRun.findFirst({
+      orderBy: { createdAt: "desc" },
+      select: { assessmentsJson: true },
+    }),
+  ]);
+
+  const assessments = new Map(
+    (parseJsonColumn<NeedSummaryRow[]>(run?.assessmentsJson ?? null) ?? []).map(
+      (assessment) => [assessment.recipientReference, assessment],
+    ),
+  );
+
+  // Aggregate the thousands of half-hourly decisions into one line per pair.
+  const pairKwh = new Map<string, number>();
+  const exporterKwh = new Map<string, number>();
+  const recipientKwh = new Map<string, number>();
+
+  for (const allocation of allocations) {
+    const from = allocation.exporter.reference;
+    const to = allocation.recipient.reference;
+    const key = `${from}|${to}`;
+
+    pairKwh.set(key, (pairKwh.get(key) ?? 0) + allocation.kwh);
+    exporterKwh.set(from, (exporterKwh.get(from) ?? 0) + allocation.kwh);
+    recipientKwh.set(to, (recipientKwh.get(to) ?? 0) + allocation.kwh);
+  }
+
+  const exporters: FlowNode[] = households
+    .filter((household) => household.role === HouseholdRole.EXPORTER)
+    .map((household) => ({
+      reference: household.reference,
+      locality: household.locality,
+      kwh: round1(exporterKwh.get(household.reference) ?? 0),
+      capacityKw: household.solarCapacityKw ?? undefined,
+    }))
+    .sort((a, b) => b.kwh - a.kwh);
+
+  const recipients: FlowNode[] = households
+    .filter((household) => household.role === HouseholdRole.RECIPIENT)
+    .map((household) => {
+      const consumed = household.readings.reduce((sum, row) => sum + row.kwh, 0);
+      const received = recipientKwh.get(household.reference) ?? 0;
+      const assessment = assessments.get(household.reference);
+
+      return {
+        reference: household.reference,
+        locality: household.locality,
+        kwh: round1(received),
+        needScore: assessment?.needScore,
+        eligible: assessment?.eligible ?? received > 0,
+        sharePercent:
+          consumed > 0 ? Math.round((received / consumed) * 100) : 0,
+      };
+    })
+    // Served households first, ordered by the share of their bill covered;
+    // then the ineligible ones, so the diagram reads top to bottom as
+    // "most helped" down to "not eligible".
+    .sort((a, b) => {
+      if (a.kwh > 0 !== b.kwh > 0) return a.kwh > 0 ? -1 : 1;
+      if (a.kwh > 0) return (b.sharePercent ?? 0) - (a.sharePercent ?? 0);
+      return (b.needScore ?? 0) - (a.needScore ?? 0);
+    });
+
+  const links: FlowLink[] = [...pairKwh.entries()]
+    .map(([key, kwh]) => {
+      const [from, to] = key.split("|");
+      return { from, to, kwh: round1(kwh) };
+    })
+    .filter((link) => link.kwh > 0)
+    .sort((a, b) => b.kwh - a.kwh);
+
+  return {
+    exporters,
+    recipients,
+    links,
+    totalKwh: round1([...recipientKwh.values()].reduce((sum, k) => sum + k, 0)),
+  };
+}
+
+// ---------------------------------------------------------------------------
 // The balance over time
 // ---------------------------------------------------------------------------
 
@@ -579,4 +713,9 @@ export async function getBalanceSeries(): Promise<BalancePoint[]> {
   }
 
   return series;
+}
+
+/** Round to one decimal place, for figures shown to a person. */
+function round1(value: number): number {
+  return Math.round(value * 10) / 10;
 }

@@ -12,6 +12,9 @@
  * once during development.
  */
 
+// Must be first: loads .env.local before any module reads process.env.
+import "../src/lib/env-first.ts";
+
 import { existsSync } from "node:fs";
 import path from "node:path";
 
@@ -26,12 +29,9 @@ import {
 import { DEMO_POT } from "../src/lib/synthetic/households.ts";
 import { chainIsReachable, tokenAddress } from "../src/lib/chain/client.ts";
 import { formatPence } from "../src/lib/format.ts";
-import { loadEnvFiles } from "../src/lib/env-file.ts";
 import { onChainPotBalancePence } from "../src/lib/settlement/service.ts";
 import { prisma } from "../src/lib/db.ts";
 import { SPENT_STATUSES } from "../src/lib/domain.ts";
-
-loadEnvFiles();
 
 type Level = "ready" | "warn" | "blocked";
 

@@ -3,60 +3,117 @@
 /**
  * Solace — the design system.
  *
- * The tone is civic and institutional. This is a page a councillor might print
- * and take to a scrutiny committee, so it reads like a public document rather
- * than a financial product: warm paper rather than white, ink rather than
- * black, a serif for figures that matter, and restraint everywhere else.
+ * The reference is a well-made public annual report, not a dashboard product.
+ * A deep ink band carries the identity and the headline figure; warm paper
+ * carries the working detail below it. Amber appears only where energy does.
  *
- * The palette is deliberately single-mode. A half-considered dark theme on a
- * page full of charts is worse than a light one committed to properly, so every
- * colour below is painted explicitly and none of it depends on the viewer's
- * system setting.
+ * Three rules hold the whole thing together:
  *
- * The three data colours were validated rather than chosen by eye: worst
- * adjacent contrast under simulated colour-vision deficiency is ΔE 22.1, and
- * ΔE 28.1 for normal vision, against a required floor of 8 and 15.
+ *   1. Ink is never pure black and paper is never pure white. Both are warmed,
+ *      which is what stops a data-dense page feeling clinical.
+ *   2. Amber means energy reaching a home. It is never used for decoration,
+ *      so when it appears the eye has learned what it means.
+ *   3. Every figure is tabular and set in the serif. Numbers are the substance
+ *      of this page and they are typeset as such.
+ *
+ * The palette is single-mode and painted explicitly. A half-considered dark
+ * theme across a page of charts is worse than a light one committed to
+ * properly.
  */
 
 @theme {
-  /* Surfaces. Paper is warm; cards sit above it in plain white. */
-  --color-paper: #faf8f4;
+  /* -- Ink: the authoritative band ------------------------------------- */
+  --color-ink-deep: #071624;
+  --color-ink: #0b2035;
+  --color-ink-soft: #16334d;
+
+  /* -- Paper: the working surface -------------------------------------- */
+  --color-paper: #fbf9f5;
   --color-surface: #ffffff;
-  --color-sunken: #f4f1ea;
+  --color-sunken: #f3efe7;
 
-  /* Rules and edges. */
-  --color-hairline: #e4ded3;
-  --color-edge: #cfc7b8;
+  /* -- Rules and edges -------------------------------------------------- */
+  --color-hairline: #e6e0d5;
+  --color-edge: #cec5b6;
 
-  /* Ink. Never pure black — it reads harsh on warm paper. */
-  --color-ink: #10233a;
-  --color-ink-secondary: #4f5f6f;
-  --color-ink-muted: #74818e;
+  /* -- Type on paper ---------------------------------------------------- */
+  --color-body: #0b2035;
+  --color-body-secondary: #4a5b6d;
+  --color-body-muted: #78848f;
 
-  /* Data colours, by the job they do. */
+  /* -- Type on ink ------------------------------------------------------ */
+  --color-on-ink: #f6f2ea;
+  --color-on-ink-secondary: #a8bccd;
+  --color-on-ink-muted: #6f8aa3;
+
+  /* -- Data colours, by the job they do ---------------------------------
+     Validated rather than chosen by eye: worst adjacent contrast under
+     simulated colour-vision deficiency is ΔE 22.1 against a floor of 8. */
   --color-money: #1f5fa8; /* the pot, balances, anything financial */
   --color-warmth: #b45309; /* energy delivered — heat reaching a home */
+  --color-warmth-bright: #e0891f; /* the same, legible on ink */
   --color-third: #6d28d9; /* a third measure, where one is needed */
 
-  /* Status. Reserved: never reused as a series colour. */
+  /* -- Status. Reserved: never reused as a series colour. --------------- */
   --color-good: #15803d;
+  --color-good-bright: #4ade80;
   --color-caution: #a16207;
   --color-critical: #b91c1c;
 
   --font-display: var(--font-source-serif), Georgia, "Times New Roman", serif;
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+
+  /* -- Elevation. Warm-tinted, never neutral grey. ----------------------- */
+  --shadow-card: 0 1px 2px rgba(11, 32, 53, 0.04),
+    0 4px 16px -8px rgba(11, 32, 53, 0.08);
+  --shadow-lift: 0 2px 4px rgba(11, 32, 53, 0.05),
+    0 12px 32px -12px rgba(11, 32, 53, 0.14);
 }
 
 html {
   background: var(--color-paper);
-  color: var(--color-ink);
+  color: var(--color-body);
 }
 
 body {
   background: var(--color-paper);
-  color: var(--color-ink);
+  color: var(--color-body);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/**
+ * The ink band behind the masthead and the headline figure.
+ *
+ * Two very soft radial washes sit over the base colour — one warm behind the
+ * energy figures, one cool behind the money. They are far too subtle to read as
+ * colour; their job is to stop a large dark area looking like a flat rectangle.
+ */
+.ink-band {
+  background:
+    radial-gradient(
+      ellipse 60% 80% at 78% 18%,
+      rgba(224, 137, 31, 0.13),
+      transparent 62%
+    ),
+    radial-gradient(
+      ellipse 70% 90% at 8% 92%,
+      rgba(31, 95, 168, 0.2),
+      transparent 60%
+    ),
+    linear-gradient(168deg, var(--color-ink) 0%, var(--color-ink-deep) 100%);
+}
+
+/** A hairline that fades out at both ends, for rules inside the ink band. */
+.rule-fade {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(168, 188, 205, 0.28) 12%,
+    rgba(168, 188, 205, 0.28) 88%,
+    transparent
+  );
 }
 
 /**
@@ -75,16 +132,32 @@ body {
 .figure {
   font-family: var(--font-display);
   font-variant-numeric: tabular-nums;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.022em;
+  font-feature-settings: "tnum" 1;
 }
 
 /** The small capitalised labels that sit above figures. */
 .overline {
   font-size: 0.6875rem;
   font-weight: 600;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--color-ink-muted);
+  color: var(--color-body-muted);
+}
+
+.overline-on-ink {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-on-ink-muted);
+}
+
+/** Section headings, set in the serif with a short rule beneath. */
+.section-title {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.012em;
 }
 
 /**
@@ -97,12 +170,32 @@ body {
   from {
     opacity: 0;
     transform: translateY(-6px);
-    background-color: color-mix(in srgb, var(--color-good) 8%, transparent);
+    background-color: color-mix(in srgb, var(--color-good) 9%, transparent);
   }
   to {
     opacity: 1;
     transform: translateY(0);
     background-color: transparent;
+  }
+}
+
+/** The slow pulse on the live indicator, while settlement is running. */
+@keyframes soft-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.45;
+    transform: scale(0.86);
+  }
+}
+
+/** Energy travelling along a flow line. */
+@keyframes flow-drift {
+  to {
+    stroke-dashoffset: -28;
   }
 }
 

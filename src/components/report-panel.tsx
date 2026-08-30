@@ -50,10 +50,11 @@ export function ReportPanel() {
     <section className="rounded-lg border border-hairline bg-surface">
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-hairline px-5 py-4">
         <div>
-          <h2 className="font-display text-lg font-semibold text-ink">
+          <div className="mb-3 h-[3px] w-9 rounded-full bg-warmth" aria-hidden="true" />
+          <h2 className="section-title text-xl text-body">
             Accountability report
           </h2>
-          <p className="mt-0.5 text-xs text-ink-muted">
+          <p className="mt-0.5 text-xs text-body-muted">
             Written from the ledger, in plain English, for a scrutiny committee.
           </p>
         </div>
@@ -62,14 +63,14 @@ export function ReportPanel() {
           type="button"
           onClick={generate}
           disabled={state === "working"}
-          className="rounded-md bg-ink px-4 py-2 text-sm font-medium text-paper transition-colors hover:bg-ink/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-money disabled:cursor-not-allowed disabled:bg-edge disabled:text-ink-muted"
+          className="rounded-md bg-ink px-4 py-2 text-sm font-medium text-paper transition-colors hover:bg-ink/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-money disabled:cursor-not-allowed disabled:bg-edge disabled:text-body-muted"
         >
           {state === "working" ? "Writing…" : "Generate report"}
         </button>
       </div>
 
       {result === null ? (
-        <p className="px-5 py-8 text-center text-sm text-ink-muted">
+        <p className="px-5 py-8 text-center text-sm text-body-muted">
           {state === "working"
             ? "Gathering the figures and writing the report…"
             : "The report is generated from the ledger on demand."}
@@ -80,7 +81,7 @@ export function ReportPanel() {
             <p
               className={`mb-4 rounded-md border px-3 py-2 text-sm ${
                 result.stale === true
-                  ? "border-caution/30 bg-caution/5 text-ink-secondary"
+                  ? "border-caution/30 bg-caution/5 text-body-secondary"
                   : "border-critical/30 bg-critical/5 text-critical"
               }`}
               role="status"
@@ -92,7 +93,7 @@ export function ReportPanel() {
           )}
 
           {result.narrative != null && (
-            <article className="space-y-3 text-sm leading-relaxed text-ink">
+            <article className="space-y-3 text-sm leading-relaxed text-body">
               {result.narrative
                 .split(/\n\s*\n/)
                 .filter((paragraph) => paragraph.trim() !== "")
@@ -111,7 +112,7 @@ export function ReportPanel() {
             <p
               className={`mt-4 rounded-md border px-3 py-2 text-xs ${
                 (result.unverifiedFigures?.length ?? 0) === 0
-                  ? "border-good/30 bg-good/5 text-ink-secondary"
+                  ? "border-good/30 bg-good/5 text-body-secondary"
                   : "border-critical/30 bg-critical/5 text-critical"
               }`}
             >
@@ -157,20 +158,20 @@ function FactTable({ facts }: { facts: ReportFacts }) {
 
   return (
     <details className="mt-4 border-t border-hairline pt-3">
-      <summary className="cursor-pointer text-xs font-medium text-ink-secondary hover:text-ink">
+      <summary className="cursor-pointer text-xs font-medium text-body-secondary hover:text-body">
         The figures this report was written from
       </summary>
 
       <dl className="mt-2 space-y-1 text-xs">
         {rows.map(([label, value]) => (
           <div key={label} className="flex items-baseline justify-between gap-4">
-            <dt className="text-ink-muted">{label}</dt>
-            <dd className="tabular text-ink-secondary">{value}</dd>
+            <dt className="text-body-muted">{label}</dt>
+            <dd className="tabular text-body-secondary">{value}</dd>
           </div>
         ))}
       </dl>
 
-      <p className="mt-2 text-xs text-ink-muted">
+      <p className="mt-2 text-xs text-body-muted">
         The model was given these figures and nothing else. It wrote the
         sentences; it did not source the facts.
       </p>

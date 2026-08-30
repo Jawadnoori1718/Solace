@@ -11,6 +11,9 @@
  * only decides.
  */
 
+// Must be first: loads .env.local before any module reads process.env.
+import "../src/lib/env-first.ts";
+
 import { allocate } from "../src/lib/engine/allocate.ts";
 import {
   currentPotBalancePence,
@@ -18,11 +21,8 @@ import {
 } from "../src/lib/engine/load.ts";
 import { DEMO_POT, householdId } from "../src/lib/synthetic/households.ts";
 import { formatKwh, formatPence } from "../src/lib/format.ts";
-import { loadEnvFiles } from "../src/lib/env-file.ts";
 import { prisma } from "../src/lib/db.ts";
 import { toJsonColumn } from "../src/lib/domain.ts";
-
-loadEnvFiles();
 
 const SEED = process.env.SOLACE_ALLOCATION_SEED?.trim() || "solace-allocation-2026";
 

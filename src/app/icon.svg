@@ -1,0 +1,26 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!--
+    Solace favicon. A sun rising over a roofline.
+
+    Deliberately reduced to two shapes plus a ground. At 16 pixels the rays and
+    the glow disappear into noise, so they are not here at all — a favicon that
+    is legible only at 64 pixels is a favicon nobody ever sees clearly.
+  -->
+  <defs>
+    <linearGradient id="ground" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#12314c"/>
+      <stop offset="100%" stop-color="#071624"/>
+    </linearGradient>
+    <linearGradient id="sun" x1="0.5" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="#f7b955"/>
+      <stop offset="55%" stop-color="#e0891f"/>
+      <stop offset="100%" stop-color="#b45309"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="32" height="32" rx="7.5" fill="url(#ground)"/>
+  <circle cx="16" cy="12.3" r="5.4" fill="url(#sun)"/>
+  <path d="M6.2 25.1 L16 16.3 L25.8 25.1"
+        stroke="#fbf9f5" stroke-width="3" stroke-linecap="round"
+        stroke-linejoin="round" fill="none"/>
+</svg>

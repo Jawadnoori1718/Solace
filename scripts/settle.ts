@@ -14,11 +14,13 @@
  * stops dead on the first bad transaction is useless on a stage.
  */
 
+// Must be first: loads .env.local before any module reads process.env.
+import "../src/lib/env-first.ts";
+
 import { ACTIVE_CHAIN, MODE, modeDescription } from "../src/lib/config.ts";
 import { CHAINS } from "../src/lib/config.ts";
 import { DEMO_POT } from "../src/lib/synthetic/households.ts";
 import { formatKwh, formatPence, shortenHash } from "../src/lib/format.ts";
-import { loadEnvFiles } from "../src/lib/env-file.ts";
 import { prisma } from "../src/lib/db.ts";
 import {
   fundPot,
@@ -29,8 +31,6 @@ import {
   settleAllocation,
   spentPence,
 } from "../src/lib/settlement/service.ts";
-
-loadEnvFiles();
 
 /** `--limit N` caps how many allocations are settled in one run. */
 function parseLimit(): number | undefined {

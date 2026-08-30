@@ -82,7 +82,15 @@ export function publicClient() {
  * local test account, which is the whole point of demo mode.
  */
 export function settlementAccount(): Account | null {
-  const key = DEPLOYER_PRIVATE_KEY || (isLiveMode ? "" : LOCAL_TEST_KEY);
+  // The key is chosen by mode, not by whether one happens to be configured.
+  //
+  // A Base Sepolia deployer key is meaningless on a local chain: it holds no
+  // local ether and it is not the account that deployed the local contract, so
+  // every settlement reverts with `NotASettler`. Before this was explicit,
+  // simply adding a testnet key to `.env.local` silently broke demo mode —
+  // which is exactly the configuration somebody would be in the day before a
+  // demonstration.
+  const key = isLiveMode ? DEPLOYER_PRIVATE_KEY : LOCAL_TEST_KEY;
   if (!key) return null;
 
   try {

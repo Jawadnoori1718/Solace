@@ -12,14 +12,14 @@
  * re-run afterwards to take account of it. The script says so.
  */
 
+// Must be first: loads .env.local before any module reads process.env.
+import "../src/lib/env-first.ts";
+
 import { AI_MODEL, PARSER_VERSION } from "../src/lib/ai/client.ts";
 import { hasAnthropicKey } from "../src/lib/config.ts";
-import { loadEnvFiles } from "../src/lib/env-file.ts";
 import { parseCaseNote } from "../src/lib/ai/parse-need-signals.ts";
 import { prisma } from "../src/lib/db.ts";
 import { toJsonColumn } from "../src/lib/domain.ts";
-
-loadEnvFiles();
 
 const force = process.argv.includes("--force");
 

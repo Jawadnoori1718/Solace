@@ -13,7 +13,7 @@ import type { AllocationRow } from "@/lib/dashboard/queries";
 export function AllocationList({ allocations }: { allocations: AllocationRow[] }) {
   if (allocations.length === 0) {
     return (
-      <p className="rounded-lg border border-dashed border-edge bg-surface px-6 py-12 text-center text-sm text-ink-muted">
+      <p className="rounded-lg border border-dashed border-edge bg-surface px-6 py-12 text-center text-sm text-body-muted">
         No allocations yet. Run{" "}
         <code className="rounded bg-sunken px-1.5 py-0.5 text-xs">
           npm run allocate
@@ -35,18 +35,18 @@ export function AllocationList({ allocations }: { allocations: AllocationRow[] }
             summary={
               <span className="flex flex-wrap items-baseline justify-between gap-x-5 gap-y-1">
                 <span className="min-w-0">
-                  <span className="block text-sm text-ink">
+                  <span className="block text-sm text-body">
                     <span className="font-medium">
                       {allocation.recipient.locality}
                     </span>
-                    <span className="mx-1.5 text-ink-muted" aria-hidden="true">
+                    <span className="mx-1.5 text-body-muted" aria-hidden="true">
                       ←
                     </span>
-                    <span className="text-ink-secondary">
+                    <span className="text-body-secondary">
                       {allocation.exporter.locality}
                     </span>
                   </span>
-                  <span className="mt-0.5 block text-xs text-ink-muted">
+                  <span className="mt-0.5 block text-xs text-body-muted">
                     {longDate(allocation.date)}
                     <span className="mx-1.5" aria-hidden="true">
                       ·
@@ -72,7 +72,7 @@ export function AllocationList({ allocations }: { allocations: AllocationRow[] }
                   <span className="figure tabular text-base font-semibold text-warmth">
                     {formatKwh(allocation.kwh)}
                   </span>
-                  <span className="figure tabular text-base font-semibold text-ink">
+                  <span className="figure tabular text-base font-semibold text-body">
                     {formatPence(allocation.amountPence)}
                   </span>
                   <SettlementBadge settlement={allocation.settlement} />
@@ -81,7 +81,7 @@ export function AllocationList({ allocations }: { allocations: AllocationRow[] }
             }
           >
             {allocation.reasoning === null ? (
-              <p className="border-t border-hairline bg-sunken/40 px-5 py-4 text-sm text-ink-muted">
+              <p className="border-t border-hairline bg-sunken/40 px-5 py-4 text-sm text-body-muted">
                 No reasoning was stored for this allocation.
               </p>
             ) : (
@@ -117,7 +117,7 @@ function SettlementBadge({
 }) {
   if (settlement === null) {
     return (
-      <span className="rounded-full border border-hairline bg-sunken px-2 py-0.5 text-xs text-ink-muted">
+      <span className="rounded-full border border-hairline bg-sunken px-2 py-0.5 text-xs text-body-muted">
         Not settled
       </span>
     );

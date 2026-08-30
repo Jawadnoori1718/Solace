@@ -38,23 +38,23 @@ export function HouseholdPanel({ households }: { households: HouseholdRow[] }) {
             className={`px-5 py-3.5 ${served ? "" : "bg-sunken/50"}`}
           >
             <div className="flex items-baseline justify-between gap-4">
-              <p className="font-medium text-ink">{household.locality}</p>
+              <p className="font-medium text-body">{household.locality}</p>
 
               {served ? (
                 <p className="shrink-0 text-right">
                   <span className="tabular text-sm font-semibold text-warmth">
                     {formatKwh(household.kwhReceived, 0)}
                   </span>
-                  <span className="tabular ml-2 text-xs text-ink-muted">
+                  <span className="tabular ml-2 text-xs text-body-muted">
                     {formatPence(household.pencePaid)}
                   </span>
                 </p>
               ) : (
-                <p className="shrink-0 text-xs text-ink-muted">Not served</p>
+                <p className="shrink-0 text-xs text-body-muted">Not served</p>
               )}
             </div>
 
-            <p className="mt-0.5 text-xs text-ink-muted">
+            <p className="mt-0.5 text-xs text-body-muted">
               <span className="tabular">{household.reference}</span>
               {household.epcBand !== null && <> · EPC {household.epcBand}</>}
               {household.onPrepaymentMeter && <> · prepayment</>}
@@ -63,9 +63,9 @@ export function HouseholdPanel({ households }: { households: HouseholdRow[] }) {
             </p>
 
             <div className="mt-2 flex items-center gap-3">
-              <span className="w-16 shrink-0 text-xs text-ink-muted">
+              <span className="w-16 shrink-0 text-xs text-body-muted">
                 Need{" "}
-                <span className="tabular text-ink-secondary">
+                <span className="tabular text-body-secondary">
                   {household.needScore === null
                     ? "—"
                     : household.needScore.toFixed(2)}
@@ -82,7 +82,7 @@ export function HouseholdPanel({ households }: { households: HouseholdRow[] }) {
                 />
               </div>
 
-              <span className="tabular w-9 shrink-0 text-right text-xs text-ink">
+              <span className="tabular w-9 shrink-0 text-right text-xs text-body">
                 {share > 0 ? `${Math.round(share * 100)}%` : "—"}
               </span>
             </div>

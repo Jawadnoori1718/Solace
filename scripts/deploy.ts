@@ -14,16 +14,16 @@
  * leaves a genuine AllocationSettled event anybody can read on Basescan.
  */
 
+// Must be first: loads .env.local before any module reads process.env.
+import "../src/lib/env-first.ts";
+
 import { network } from "hardhat";
 import { keccak256, toHex } from "viem";
 
 import { CHAINS, explorerAddressUrl, explorerTxUrl } from "../src/lib/config.ts";
 import { prisma } from "../src/lib/db.ts";
 import { ChainName } from "../src/lib/domain.ts";
-import { loadEnvFiles } from "../src/lib/env-file.ts";
 import { formatKwh, formatPence } from "../src/lib/format.ts";
-
-loadEnvFiles();
 
 /** Map a chain id to the name the rest of the system uses. */
 function chainNameFor(chainId: number): ChainName {

@@ -151,10 +151,11 @@ export function LiveSettlement({
     <section className="rounded-lg border border-hairline bg-surface">
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-hairline px-5 py-4">
         <div>
-          <h2 className="font-display text-lg font-semibold text-ink">
+          <div className="mb-3 h-[3px] w-9 rounded-full bg-warmth" aria-hidden="true" />
+          <h2 className="section-title text-xl text-body">
             Settle live
           </h2>
-          <p className="mt-0.5 text-xs text-ink-muted">
+          <p className="mt-1 text-xs text-body-muted">
             {pendingCount > 0
               ? `${pendingCount} allocation${pendingCount === 1 ? "" : "s"} awaiting settlement.`
               : "Nothing is awaiting settlement."}
@@ -166,7 +167,7 @@ export function LiveSettlement({
             <p className="overline">Remaining</p>
             <AnimatedPence
               value={balancePence}
-              className="figure block text-2xl font-semibold text-ink"
+              className="figure block text-2xl font-semibold text-body"
             />
           </div>
 
@@ -174,7 +175,7 @@ export function LiveSettlement({
             type="button"
             onClick={start}
             disabled={running || pendingCount === 0}
-            className="rounded-md bg-ink px-4 py-2 text-sm font-medium text-paper transition-colors hover:bg-ink/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-money disabled:cursor-not-allowed disabled:bg-edge disabled:text-ink-muted"
+            className="rounded-md bg-ink px-4 py-2 text-sm font-medium text-paper transition-colors hover:bg-ink/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-money disabled:cursor-not-allowed disabled:bg-edge disabled:text-body-muted"
           >
             {running ? "Settling…" : "Settle now"}
           </button>
@@ -190,7 +191,7 @@ export function LiveSettlement({
                 style={{ width: `${(progress.done / progress.total) * 100}%` }}
               />
             </div>
-            <span className="tabular text-xs text-ink-muted">
+            <span className="tabular text-xs text-body-muted">
               {progress.done} of {progress.total}
             </span>
           </div>
@@ -200,7 +201,7 @@ export function LiveSettlement({
       {message !== null && (
         <p
           className={`border-b border-hairline px-5 py-3 text-sm ${
-            phase === "error" ? "text-critical" : "text-ink-secondary"
+            phase === "error" ? "text-critical" : "text-body-secondary"
           }`}
           role="status"
         >
@@ -209,11 +210,35 @@ export function LiveSettlement({
       )}
 
       {feed.length === 0 ? (
-        <p className="px-5 py-8 text-center text-sm text-ink-muted">
-          {running
-            ? "Waiting for the first transaction to confirm…"
-            : "Each settlement will appear here as its transaction is mined."}
-        </p>
+        <div className="flex flex-col items-center gap-3 px-5 py-12 text-center">
+          <span
+            className={`inline-flex h-11 w-11 items-center justify-center rounded-full border ${
+              running
+                ? "border-warmth/30 bg-warmth/10"
+                : "border-hairline bg-sunken"
+            }`}
+            aria-hidden="true"
+          >
+            <span
+              className={`h-2.5 w-2.5 rounded-full ${
+                running ? "bg-warmth" : "bg-edge"
+              }`}
+              style={
+                running
+                  ? { animation: "soft-pulse 1.6s ease-in-out infinite" }
+                  : undefined
+              }
+            />
+          </span>
+
+          <p className="max-w-sm text-sm text-body-secondary">
+            {running
+              ? "Waiting for the first transaction to confirm…"
+              : pendingCount > 0
+                ? "Each settlement appears here the moment its transaction is mined, and the balance above falls with it."
+                : "Every allocation has already been settled."}
+          </p>
+        </div>
       ) : (
         <ul className="divide-y divide-hairline" aria-live="polite">
           {feed.map((item) => (
@@ -223,12 +248,12 @@ export function LiveSettlement({
             >
               <div className="flex flex-wrap items-baseline justify-between gap-x-5 gap-y-1">
                 <div className="min-w-0">
-                  <p className="text-sm text-ink">
+                  <p className="text-sm text-body">
                     <span className="font-medium">{item.recipientLocality}</span>
-                    <span className="mx-1.5 text-ink-muted" aria-hidden="true">
+                    <span className="mx-1.5 text-body-muted" aria-hidden="true">
                       ←
                     </span>
-                    <span className="text-ink-secondary">
+                    <span className="text-body-secondary">
                       {item.exporterLocality}
                     </span>
                   </p>
@@ -241,7 +266,7 @@ export function LiveSettlement({
                   <span className="tabular text-sm font-semibold text-warmth">
                     {formatKwh(item.kwh)}
                   </span>
-                  <span className="tabular text-sm font-semibold text-ink">
+                  <span className="tabular text-sm font-semibold text-body">
                     {formatPence(item.amountPence)}
                   </span>
 
