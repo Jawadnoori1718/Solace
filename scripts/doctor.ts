@@ -171,6 +171,26 @@ async function main(): Promise<void> {
 
   // -- Configuration ---------------------------------------------------------
 
+  // A key copied out of a wallet without its `0x` prefix is the easiest mistake
+  // to make here, and Hardhat's failure mode for it is a node that starts,
+  // never opens its port, and logs nothing.
+  const rawKey = process.env.DEPLOYER_PRIVATE_KEY?.trim() ?? "";
+  if (rawKey !== "") {
+    const wellFormed = /^0x[0-9a-fA-F]{64}$/.test(rawKey);
+    checks.push({
+      name: "Deployer key",
+      level: wellFormed ? "ready" : "blocked",
+      detail: wellFormed
+        ? "A well-formed deployer key is configured."
+        : /^[0-9a-fA-F]{64}$/.test(rawKey)
+          ? "The key is missing its 0x prefix. Hardhat will fail to start."
+          : "The key is not 0x followed by 64 hexadecimal characters.",
+      fix: wellFormed
+        ? undefined
+        : "edit DEPLOYER_PRIVATE_KEY in .env.local so it reads 0x<64 hex characters>",
+    });
+  }
+
   checks.push({
     name: "Hash salt",
     level: hasConfiguredHashSalt ? "ready" : "warn",
