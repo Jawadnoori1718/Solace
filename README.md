@@ -125,17 +125,23 @@ Requires Node.js 20.9 or later.
 
 ```bash
 npm install
-npm run demo:setup   # chain, data, contract, allocations — all of it
-npm run dev
+npm run demo
 ```
 
-`demo:setup` starts a local chain, generates thirty days of meter data, deploys
-the token, runs the engine, settles the history on chain, and holds twelve
-allocations back to settle live.
+Then open <http://localhost:3000>.
 
-**None of it touches the internet.** Before demonstrating anything, run
-`npm run doctor` — it checks every dependency the demonstration relies on and
-prints the command that fixes each problem.
+One command does everything: starts a local chain, generates thirty days of
+meter data, deploys the token, parses the council case notes, and resets the
+demonstration to its opening state. It only does the work that is actually
+missing, so the second run is near-instant. Ctrl-C stops it all.
+
+**All six beats are then performed in the browser** — commit council money,
+watch the roofs export, run the engine, settle, generate the report, open the
+explorer. A step bar shows which beat is next, and **Start over** returns
+everything to the beginning so it can be rehearsed as often as you like.
+
+**Nothing in demo mode touches the internet.** Run `npm run doctor` beforehand;
+it checks every dependency and prints the command that fixes each problem.
 
 Full command reference and the failure modes: **[docs/running.md](docs/running.md)**.
 The six beats of the demonstration, and the questions to expect:

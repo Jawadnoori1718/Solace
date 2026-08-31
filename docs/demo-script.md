@@ -14,13 +14,13 @@ whole thing can be run again. Rehearse it twice.
 ## Setup, fifteen minutes before
 
 ```bash
-npm run demo:setup
-npm run dev
-npm run doctor          # in a second terminal
+npm run demo
 ```
 
-Everything should read `ok` except, possibly, the Anthropic key and the hash
-salt — both degrade gracefully and neither stops the demonstration.
+One command, one window. It prints the address when it is ready.
+
+In a second terminal, `npm run doctor` should read **"Ready. Every check
+passed."** If anything reads `BLOCKED`, it prints the command that fixes it.
 
 **Open a second browser tab on the block explorer already**, loaded and logged
 in to nothing. Beat six is the only step that needs the internet, and a page

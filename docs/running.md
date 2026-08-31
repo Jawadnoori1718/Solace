@@ -8,18 +8,23 @@ Requires Node.js 20.9 or later. Nothing else needs installing.
 
 ```bash
 npm install
-npm run demo:setup
-npm run dev
+npm run demo
 ```
 
 Then open <http://localhost:3000>.
 
-`demo:setup` starts a local chain, applies migrations, generates thirty days of
-meter data for eleven households, deploys `SolacePound`, runs the allocation
-engine, settles the history on chain, and holds twelve allocations back so there
-is something real to settle live.
+That single command starts a local chain, applies migrations, generates thirty
+days of meter data for eleven households, deploys `SolacePound`, parses the
+council case notes if an API key is configured, and resets the demonstration to
+its opening state. It only does the work that is actually missing, so the second
+run is near-instant.
 
-It leaves the chain running and prints its process id.
+The dashboard runs in the foreground. **Ctrl-C stops everything**, chain
+included.
+
+`npm run demo:setup` is the older variant that also pre-settles thirty days of
+history and holds twelve allocations back. Use it if you would rather open on a
+part-spent pot than perform beat one live.
 
 ---
 
@@ -86,7 +91,8 @@ setting:
 
 | Command | What it does |
 | --- | --- |
-| `npm run demo:setup` | Build the entire demonstration from nothing, offline |
+| `npm run demo` | **Start everything and open at the opening state** |
+| `npm run demo:setup` | Build with thirty days pre-settled instead |
 | `npm run doctor` | Check everything the demonstration needs |
 | `npm run dev` | Start the dashboard |
 | `npm run demo:prepare` | Re-settle the history, holding some back for the live beat |
