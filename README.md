@@ -16,6 +16,12 @@ a result.
 At the same time, a household with rooftop solar exports its surplus to the grid
 for a few pence per unit, while a family three streets away sits in the cold.
 
+In Westminster that is not a figure of speech. The borough contains wards among
+the most deprived in England — Church Street, Queen's Park, Westbourne, Harrow
+Road — within a mile or two of some of the most valuable residential property in
+the world. The distance between a household exporting surplus and a household
+that cannot afford to heat one room is, quite literally, a few streets.
+
 Solace routes that surplus to households in need, settles it in a
 GBP-denominated token, and writes every movement to a public ledger. A
 councillor deposits into a winter pot and sees, in real time and in plain
@@ -153,7 +159,8 @@ The six beats of the demonstration, and the questions to expect:
 
 The simulation surfaced something worth stating plainly: **in a British winter,
 rooftop solar produces almost nothing.** Across a January window, three arrays
-generate 37.7 kWh against 4,886 kWh of household demand. So the naive framing —
+generate 64.7 kWh against 4,656 kWh of household demand — enough to cover 1.4%
+of it. So the naive framing —
 route winter solar surplus to fuel-poor homes in winter — does not physically
 work.
 

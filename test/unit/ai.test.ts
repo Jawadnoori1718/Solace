@@ -116,7 +116,7 @@ describe("the allocation engine has no path to a language model", () => {
 const FACTS: ReportFacts = {
   potReference: "WINTER-2026",
   potName: "Winter Support Pot 2026",
-  councilName: "Leeds City Council",
+  councilName: "Westminster City Council",
   fundingSource: "Household Support Fund",
   periodStart: "2026-07-30",
   periodEnd: "2026-08-29",
@@ -212,7 +212,7 @@ describe("the facts given to the model", () => {
       "£104.81",
       "£295.19",
       "374.3 kWh",
-      "Leeds City Council",
+      "Westminster City Council",
       "Winter Support Pot 2026",
       "Household Support Fund",
     ]) {

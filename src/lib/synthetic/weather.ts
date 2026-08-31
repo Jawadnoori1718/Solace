@@ -12,7 +12,7 @@
  * flickering between full sun and overcast every thirty minutes. So a whole
  * day is generated at once, as a correlated series.
  *
- * These are typical values for northern England, not measurements. The data is
+ * These are typical values for southern England, not measurements. The data is
  * simulated and labelled as such throughout.
  */
 
@@ -43,7 +43,7 @@ export interface DayWeather {
 }
 
 /**
- * The seasonal temperature curve for northern England.
+ * The seasonal temperature curve for southern England.
  *
  * A sinusoid peaking in late July and bottoming in late January. Roughly 4°C in
  * midwinter and 17°C in midsummer.
@@ -52,8 +52,10 @@ function seasonalMeanTemperature(date: Date): number {
   const start = Date.UTC(date.getUTCFullYear(), 0, 1);
   const day = Math.floor((date.getTime() - start) / 86_400_000);
 
-  const annualMean = 10.5;
-  const amplitude = 6.5;
+  // London runs about a degree and a half warmer than the north of England
+  // across the year: roughly 5.5°C in January and 19°C in July.
+  const annualMean = 11.8;
+  const amplitude = 6.8;
   // Day 205 is around 24 July, the warmest part of the year.
   const phase = ((day - 205) / 365) * 2 * Math.PI;
 
@@ -72,7 +74,8 @@ function seasonalCloudBase(date: Date): number {
   const start = Date.UTC(date.getUTCFullYear(), 0, 1);
   const day = Math.floor((date.getTime() - start) / 86_400_000);
 
-  const meanClearness = 0.55;
+  // The south-east is the sunniest part of England, though not by much.
+  const meanClearness = 0.58;
   const amplitude = 0.12;
   const phase = ((day - 180) / 365) * 2 * Math.PI;
 

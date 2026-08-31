@@ -32,7 +32,7 @@ If anything reads `BLOCKED`, `doctor` prints the command that fixes it.
 
 ## Beat 1 — A council deposits into a winter pot
 
-*"Leeds City Council is committing four hundred pounds from its Household
+*"Westminster City Council is committing four hundred pounds from its Household
 Support Fund to a winter pot. Watch."*
 
 In **Commit council money**, type an amount — or take one from the room — and

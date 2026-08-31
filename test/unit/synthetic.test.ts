@@ -184,8 +184,8 @@ describe("solar geometry", () => {
     );
 
     const highest = elevations.indexOf(Math.max(...elevations));
-    // Leeds is just west of Greenwich, so solar noon falls a few minutes after
-    // 12:00 UTC.
+    // Westminster sits essentially on the Greenwich meridian, so solar noon
+    // falls within a few minutes of 12:00 UTC.
     assert.ok(highest >= 11 && highest <= 13, `peak elevation at ${highest}:00`);
   });
 
@@ -442,7 +442,7 @@ describe("the demo universe", () => {
         ...EXPORTERS.map((exporter) => distanceKm(exporter, recipient)),
       );
       assert.ok(
-        nearest <= 8,
+        nearest <= 3,
         `${recipient.reference} in ${recipient.locality} is ${nearest.toFixed(1)} km from the nearest exporter`,
       );
     }

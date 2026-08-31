@@ -5,24 +5,34 @@
  * the entire world, and it is defined here as plain data so a reader can see
  * every input to the allocation engine on a single screen.
  *
+ * WHY WESTMINSTER
+ *
+ * Because the inequality is real and it is short. Westminster contains wards
+ * among the most deprived in England — Church Street, Queen's Park, Westbourne,
+ * Harrow Road — within a mile or two of some of the most valuable residential
+ * property in the world. A household in fuel poverty and a household exporting
+ * surplus to the grid for a few pence are genuinely a few streets apart here,
+ * which is the premise of this project stated as geography rather than
+ * rhetoric.
+ *
  * WHY THESE HOUSEHOLDS ARE ELECTRICALLY HEATED
  *
- * Most British homes heat with gas, and Solace moves electricity. The households
- * modelled here heat with electricity, which is not an evasion of that problem
- * but the point of it: electrically-heated homes are disproportionately
- * fuel-poor. Electric heating costs several times what gas does per unit of
- * heat, it is concentrated in flats, older terraces and homes off the gas grid,
- * and it correlates strongly with prepayment metering. These are precisely the
- * households a winter support fund is trying to reach, and precisely the ones a
- * delivered kilowatt-hour helps most.
+ * Most British homes heat with gas, and Solace moves electricity. The
+ * households modelled here heat with electricity, which is not an evasion of
+ * that problem but the point of it: electrically-heated homes are
+ * disproportionately fuel-poor. Electric heating costs several times what gas
+ * does per unit of heat, and in inner London it concentrates in exactly the
+ * housing these households live in — flats, ex-local-authority blocks, converted
+ * upper floors — where a gas connection or a boiler flue was never practical.
+ * It also correlates strongly with prepayment metering.
  *
  * WHAT IS AND IS NOT REAL
  *
- * The localities are real Leeds neighbourhoods, chosen so distances and travel
- * between them are honest. Everything else — the households, their
- * circumstances, their meter readings and the case notes about them — is
- * synthetic. No real person is described anywhere in this file, and no real
- * council record informed it.
+ * The wards are real Westminster wards, chosen so distances between them are
+ * honest. Everything else — the households, their circumstances, their meter
+ * readings and the case notes about them — is synthetic. No real person is
+ * described anywhere in this file, no real address is used, and no real council
+ * record informed it.
  *
  * The need attributes mirror the fields a council genuinely holds: benefit
  * status from its own records, EPC band from the national register, household
@@ -32,11 +42,17 @@
 
 import { HouseholdRole, type EpcBand } from "../domain.ts";
 
-/** Where the pilot sits. Used for solar geometry and distances. */
+/**
+ * Where the pilot sits. Used for solar geometry and distances.
+ *
+ * Westminster is at 51.5°N, two and a bit degrees south of Leeds, which makes
+ * midwinter days meaningfully longer and midsummer days shorter. The solar
+ * model computes that from the latitude rather than assuming it.
+ */
 export const PILOT_LOCATION = {
-  name: "Leeds",
-  latitude: 53.7997,
-  longitude: -1.5492,
+  name: "Westminster",
+  latitude: 51.4975,
+  longitude: -0.1357,
 } as const;
 
 export interface ExporterDefinition {
@@ -97,34 +113,41 @@ export interface RecipientDefinition {
 // Exporting households
 // ---------------------------------------------------------------------------
 
+/**
+ * Three roofs, deliberately spread north, west and south of the borough.
+ *
+ * Rooftop solar in Westminster is constrained by conservation areas and by the
+ * sheer proportion of flats, so these are the property types where it is
+ * actually plausible: houses and low-rise terraces with their own roof.
+ */
 export const EXPORTERS: readonly ExporterDefinition[] = [
   {
     reference: "SOL-01",
     role: HouseholdRole.EXPORTER,
-    displayName: "Semi-detached with rooftop array, Adel",
-    locality: "Adel",
-    latitude: 53.848,
-    longitude: -1.586,
+    displayName: "Semi-detached with rooftop array, St John's Wood",
+    locality: "St John's Wood",
+    latitude: 51.534,
+    longitude: -0.174,
     solarCapacityKw: 4.2,
     dailyConsumptionKwh: 8.4,
   },
   {
     reference: "SOL-02",
     role: HouseholdRole.EXPORTER,
-    displayName: "Detached with rooftop array, Horsforth",
-    locality: "Horsforth",
-    latitude: 53.8367,
-    longitude: -1.635,
+    displayName: "Terraced house with rooftop array, Little Venice",
+    locality: "Little Venice",
+    latitude: 51.522,
+    longitude: -0.183,
     solarCapacityKw: 3.6,
     dailyConsumptionKwh: 7.1,
   },
   {
     reference: "SOL-03",
     role: HouseholdRole.EXPORTER,
-    displayName: "Detached with rooftop array, Roundhay",
-    locality: "Roundhay",
-    latitude: 53.833,
-    longitude: -1.498,
+    displayName: "Terraced house with rooftop array, Pimlico",
+    locality: "Pimlico South",
+    latitude: 51.487,
+    longitude: -0.137,
     solarCapacityKw: 5.0,
     dailyConsumptionKwh: 9.8,
   },
@@ -146,10 +169,10 @@ export const RECIPIENTS: readonly RecipientDefinition[] = [
   {
     reference: "REC-01",
     role: HouseholdRole.RECIPIENT,
-    displayName: "Back-to-back terrace, Armley",
-    locality: "Armley",
-    latitude: 53.796,
-    longitude: -1.592,
+    displayName: "Council flat, Church Street",
+    locality: "Church Street",
+    latitude: 51.523,
+    longitude: -0.169,
     onMeansTestedBenefit: true,
     epcBand: "F",
     occupants: 3,
@@ -162,7 +185,7 @@ export const RECIPIENTS: readonly RecipientDefinition[] = [
     caseNotes: [
       {
         daysAgo: 22,
-        text: "Home visit following a referral from the health visitor. Single parent, two children under five. Storage heaters in the front room only; back bedroom has no working heating and there is visible damp on the external wall. Meter went into emergency credit twice during the visit week. Parent said they top up £10 at a time and turn everything off once the children are in bed. Advised on the warm homes scheme and made a referral to the local welfare assistance fund.",
+        text: "Home visit following a referral from the health visitor. Single parent, two children under five, third floor of a block with no lift working. Electric panel heaters in the living room only; the back bedroom has no working heating and there is visible damp on the external wall. Meter went into emergency credit twice during the visit week. Parent said she tops up ten pounds at a time and turns everything off once the children are in bed. Advised on the warm homes scheme and made a referral to the local welfare assistance fund.",
       },
       {
         daysAgo: 6,
@@ -173,10 +196,10 @@ export const RECIPIENTS: readonly RecipientDefinition[] = [
   {
     reference: "REC-02",
     role: HouseholdRole.RECIPIENT,
-    displayName: "Ground-floor flat, Beeston",
-    locality: "Beeston",
-    latitude: 53.772,
-    longitude: -1.562,
+    displayName: "Ground-floor flat, Queen's Park",
+    locality: "Queen's Park",
+    latitude: 51.534,
+    longitude: -0.207,
     onMeansTestedBenefit: true,
     epcBand: "E",
     occupants: 2,
@@ -189,17 +212,17 @@ export const RECIPIENTS: readonly RecipientDefinition[] = [
     caseNotes: [
       {
         daysAgo: 17,
-        text: "Couple in their seventies, both retired, on pension credit. One partner has a respiratory condition and was hospitalised twice last winter; the discharge letter specifically mentions cold and damp at home. They are on a credit meter and are £340 in arrears with the supplier. They have stopped heating the bedroom to keep the living room warm during the day. Referred to the affordable warmth team.",
+        text: "Couple in their seventies, both retired, on pension credit. One partner has a respiratory condition and was admitted to St Mary's twice last winter; the discharge letter specifically mentions cold and damp at home. They are on a credit meter and are three hundred and forty pounds in arrears with the supplier. They have stopped heating the bedroom to keep the front room warm during the day. Referred to the affordable warmth team.",
       },
     ],
   },
   {
     reference: "REC-03",
     role: HouseholdRole.RECIPIENT,
-    displayName: "Mid-terrace, Harehills",
-    locality: "Harehills",
-    latitude: 53.809,
-    longitude: -1.514,
+    displayName: "Council maisonette, Westbourne",
+    locality: "Westbourne",
+    latitude: 51.524,
+    longitude: -0.201,
     onMeansTestedBenefit: true,
     epcBand: "D",
     occupants: 5,
@@ -212,7 +235,7 @@ export const RECIPIENTS: readonly RecipientDefinition[] = [
     caseNotes: [
       {
         daysAgo: 28,
-        text: "Family of five, three children, youngest is two. Both parents working part time and receiving universal credit. Prepayment meter. They manage most weeks but told me the meter had run out on a Sunday last month and they were without power until the following morning. The property itself is in reasonable repair.",
+        text: "Family of five, three children, youngest is two. Both parents working part time and receiving universal credit. Prepayment meter. They manage most weeks but told me the meter had run out on a Sunday last month and they were without power until the following morning. The maisonette itself is in reasonable repair.",
       },
       {
         daysAgo: 11,
@@ -223,10 +246,10 @@ export const RECIPIENTS: readonly RecipientDefinition[] = [
   {
     reference: "REC-04",
     role: HouseholdRole.RECIPIENT,
-    displayName: "Purpose-built flat, Gipton",
-    locality: "Gipton",
-    latitude: 53.811,
-    longitude: -1.489,
+    displayName: "Purpose-built flat, Regent's Park",
+    locality: "Regent's Park",
+    latitude: 51.526,
+    longitude: -0.149,
     onMeansTestedBenefit: false,
     epcBand: "C",
     occupants: 1,
@@ -246,10 +269,10 @@ export const RECIPIENTS: readonly RecipientDefinition[] = [
   {
     reference: "REC-05",
     role: HouseholdRole.RECIPIENT,
-    displayName: "Top-floor flat, Holbeck",
-    locality: "Holbeck",
-    latitude: 53.786,
-    longitude: -1.557,
+    displayName: "Top-floor flat, Harrow Road",
+    locality: "Harrow Road",
+    latitude: 51.527,
+    longitude: -0.198,
     onMeansTestedBenefit: true,
     epcBand: "G",
     occupants: 1,
@@ -262,7 +285,7 @@ export const RECIPIENTS: readonly RecipientDefinition[] = [
     caseNotes: [
       {
         daysAgo: 25,
-        text: "Referred by a neighbour. Woman in her eighties living alone on the top floor. Single-glazed, solid wall, electric panel heaters that she says she has not switched on since March. Wearing a coat indoors when I visited. She has a heart condition and is on the supplier's priority services register. Prepayment meter and she is self-disconnecting — she confirmed she goes without power rather than top up when the pension does not stretch. This is the most serious case on my list this month.",
+        text: "Referred by a neighbour. Woman in her eighties living alone on the top floor of a converted terrace. Single-glazed, solid wall, electric panel heaters that she says she has not switched on since March. Wearing a coat indoors when I visited. She has a heart condition and is on the supplier's priority services register. Prepayment meter and she is self-disconnecting — she confirmed she goes without power rather than top up when the pension does not stretch. This is the most serious case on my list this month.",
       },
       {
         daysAgo: 9,
@@ -273,10 +296,10 @@ export const RECIPIENTS: readonly RecipientDefinition[] = [
   {
     reference: "REC-06",
     role: HouseholdRole.RECIPIENT,
-    displayName: "Mid-terrace, Hunslet",
-    locality: "Hunslet",
-    latitude: 53.777,
-    longitude: -1.533,
+    displayName: "Ex-local authority flat, Pimlico",
+    locality: "Pimlico North",
+    latitude: 51.493,
+    longitude: -0.14,
     onMeansTestedBenefit: true,
     epcBand: "D",
     occupants: 3,
@@ -289,17 +312,17 @@ export const RECIPIENTS: readonly RecipientDefinition[] = [
     caseNotes: [
       {
         daysAgo: 14,
-        text: "Couple with a teenage child. One partner recently moved from full-time to reduced hours and they have started receiving universal credit. Credit meter, up to date with payments so far but told me they expect that to change over winter. Property is average for the street. Advised to contact us again if they fall behind.",
+        text: "Couple with a teenage child. One partner recently moved from full-time to reduced hours and they have started receiving universal credit. Credit meter, up to date with payments so far but told me they expect that to change over winter. Property is average for the block. Advised to contact us again if they fall behind.",
       },
     ],
   },
   {
     reference: "REC-07",
     role: HouseholdRole.RECIPIENT,
-    displayName: "Adapted ground-floor flat, Burmantofts",
-    locality: "Burmantofts",
-    latitude: 53.802,
-    longitude: -1.523,
+    displayName: "Adapted ground-floor flat, Vincent Square",
+    locality: "Vincent Square",
+    latitude: 51.495,
+    longitude: -0.133,
     onMeansTestedBenefit: true,
     epcBand: "E",
     occupants: 1,
@@ -319,10 +342,10 @@ export const RECIPIENTS: readonly RecipientDefinition[] = [
   {
     reference: "REC-08",
     role: HouseholdRole.RECIPIENT,
-    displayName: "Semi-detached, Seacroft",
-    locality: "Seacroft",
-    latitude: 53.824,
-    longitude: -1.457,
+    displayName: "Mansion block flat, West End",
+    locality: "West End",
+    latitude: 51.513,
+    longitude: -0.134,
     onMeansTestedBenefit: false,
     epcBand: "C",
     occupants: 4,
@@ -335,7 +358,7 @@ export const RECIPIENTS: readonly RecipientDefinition[] = [
     caseNotes: [
       {
         daysAgo: 12,
-        text: "Enquiry about the winter fund following a community centre session. Family of four, both adults in work, no benefits in payment. Home was insulated under a previous scheme and the bills are described as manageable. No indication of hardship. Logged for completeness.",
+        text: "Enquiry about the winter fund following a community centre session. Family of four, both adults in work, no benefits in payment. The block was insulated under a previous scheme and the bills are described as manageable. No indication of hardship. Logged for completeness.",
       },
     ],
   },
@@ -362,7 +385,7 @@ export const DEMO_POT = {
   id: "pot_winter_2026",
   reference: "WINTER-2026",
   name: "Winter Support Pot 2026",
-  councilName: "Leeds City Council",
+  councilName: "Westminster City Council",
   fundingSource: "Household Support Fund",
   openingDepositPence: 40_000,
   depositReference: "HSF/2026/0417",

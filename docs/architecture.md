@@ -99,7 +99,11 @@ five.
 
 ### Three constraints bind the solver
 
-**Proximity.** A recipient must be within 8 km of the exporting household.
+**Proximity.** A recipient must be within 3 km of the exporting household.
+That radius is calibrated to an inner-London borough: Westminster is about five
+kilometres corner to corner, so a wider radius would cover all of it and the
+constraint would never bind. At three, thirteen of the twenty-four possible
+pairings are eligible.
 Surplus delivered locally puts less strain on the distribution network, and a
 councillor can defend a neighbourhood-level match in a way they cannot defend a
 national one.
@@ -266,7 +270,7 @@ These are assumptions, not cited statistics, and they are configurable in
 | --- | --- | --- |
 | Tariff used to price delivered energy | 28p per kWh | `SOLACE_TARIFF_PENCE_PER_KWH` |
 | Rate a household earns exporting to the grid | 15p per kWh | `SOLACE_EXPORT_PENCE_PER_KWH` |
-| Proximity radius | 8 km | `SOLACE_PROXIMITY_RADIUS_KM` |
+| Proximity radius | 3 km | `SOLACE_PROXIMITY_RADIUS_KM` |
 | Fairness half-life | 150 kWh | `src/lib/engine/fairness.ts` |
 | Eligibility threshold | 0.35 | `src/lib/engine/allocate.ts` |
 | Factor weights | see table above | `src/lib/engine/scoring.ts` |

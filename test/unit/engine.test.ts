@@ -578,7 +578,7 @@ describe("constraints", () => {
   it("never serves a household beyond the proximity radius", () => {
     const distant = makeHighNeed({
       reference: "REC-FAR",
-      // Cornwall. Genuinely nowhere near Leeds.
+      // Cornwall. Genuinely nowhere near Westminster.
       latitude: 50.26,
       longitude: -5.05,
     });

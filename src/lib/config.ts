@@ -148,9 +148,16 @@ export const EXPORT_PENCE_PER_KWH = Number(
  * The constraint is real, not decorative: surplus delivered locally puts less
  * strain on the distribution network, and a councillor can explain a
  * neighbourhood-level match in a way they cannot explain a national one.
+ *
+ * Three kilometres is calibrated to an inner-London borough. Westminster is
+ * about five kilometres corner to corner, so a radius of eight would cover the
+ * whole of it and the constraint would never bind — it would be a rule that
+ * looks like policy and does nothing. At three, thirteen of the twenty-four
+ * possible pairings are eligible and the northern and southern halves of the
+ * borough are served by their own roofs.
  */
 export const PROXIMITY_RADIUS_KM = Number(
-  process.env.SOLACE_PROXIMITY_RADIUS_KM ?? 8,
+  process.env.SOLACE_PROXIMITY_RADIUS_KM ?? 3,
 );
 
 // ---------------------------------------------------------------------------

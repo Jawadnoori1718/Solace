@@ -4,7 +4,7 @@
  * Used by the allocation engine's proximity constraint. The constraint is not
  * decorative: energy delivered locally puts less strain on the distribution
  * network, and a councillor can defend a neighbourhood-level match in a way
- * they cannot defend sending a Leeds household's surplus to Cornwall.
+ * they cannot defend sending a Westminster household's surplus to Cornwall.
  */
 
 const EARTH_RADIUS_KM = 6371;
