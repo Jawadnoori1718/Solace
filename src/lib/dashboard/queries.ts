@@ -23,7 +23,14 @@ import {
   toChainName,
   type AllocationReasoning,
 } from "../domain.ts";
-import { chainIsReachable } from "../chain/client.ts";
+import {
+  chainIsReachable,
+  publicClient,
+  settlementAccount,
+  tokenAddress,
+} from "../chain/client.ts";
+import { SOLACE_POUND_ABI } from "../chain/solace-pound-abi.ts";
+import { potReferenceHash } from "../privacy.ts";
 import { onChainPotBalancePence } from "../settlement/service.ts";
 import { prisma } from "../db.ts";
 import { DEMO_POT } from "../synthetic/households.ts";
@@ -513,6 +520,161 @@ export async function getPendingCount(): Promise<number> {
       ],
     },
   });
+}
+
+// ---------------------------------------------------------------------------
+// What the chain itself says
+// ---------------------------------------------------------------------------
+
+export interface ChainCredit {
+  /** The HMAC written on chain. This is all the chain knows. */
+  hash: string;
+  pencePaid: number;
+  kwh: number;
+  settlements: number;
+  /**
+   * The locality this hash belongs to.
+   *
+   * Resolved here, from the council's own database, using the salt. It is shown
+   * beside the hash precisely to make the point: this column exists on our
+   * server and nowhere else. Anybody reading the chain sees the hash and
+   * nothing beside it.
+   */
+  locality: string;
+}
+
+export interface ChainLedger {
+  contractAddress: string;
+  chain: string;
+  explorerUrl: string | null;
+  tokenName: string;
+  tokenSymbol: string;
+  decimals: number;
+  /** Every token in existence, in pence. */
+  totalSupplyPence: number;
+
+  potReferenceHash: string;
+  potFundedPence: number;
+  potSpentPence: number;
+  potRemainingPence: number;
+
+  treasuryAddress: string;
+  treasuryBalancePence: number;
+
+  credits: ChainCredit[];
+  settlementCount: number;
+}
+
+/**
+ * Read the ledger straight from the contract.
+ *
+ * Every figure here comes from contract storage, not from our database. That is
+ * the whole point of the panel it feeds: a councillor can compare what this
+ * application claims against what the chain independently says, and the two
+ * columns are computed by entirely different means.
+ *
+ * Returns null when the chain cannot be reached, and the interface says so
+ * rather than showing a stale figure as though it were live.
+ */
+export async function getChainLedger(): Promise<ChainLedger | null> {
+  try {
+    const address = await tokenAddress(ACTIVE_CHAIN);
+    if (address === null) return null;
+
+    const pot = await prisma.pot.findUnique({
+      where: { reference: DEMO_POT.reference },
+    });
+    if (pot === null) return null;
+
+    const client = publicClient();
+    const account = settlementAccount();
+    if (account === null) return null;
+
+    const potHash = potReferenceHash(pot.reference);
+
+    // viem types each contract function's arguments precisely, so a single
+    // generic helper cannot satisfy all of them. `base` carries the parts every
+    // call shares and each call supplies its own name and arguments.
+    const base = { address, abi: SOLACE_POUND_ABI } as const;
+
+    const [
+      tokenName,
+      tokenSymbol,
+      decimals,
+      totalSupply,
+      funded,
+      spent,
+      remaining,
+      treasuryBalance,
+      settlementCount,
+      deployment,
+      households,
+    ] = await Promise.all([
+      client.readContract({ ...base, functionName: "name" }),
+      client.readContract({ ...base, functionName: "symbol" }),
+      client.readContract({ ...base, functionName: "decimals" }),
+      client.readContract({ ...base, functionName: "totalSupply" }),
+      client.readContract({ ...base, functionName: "potFundedPence", args: [potHash] }),
+      client.readContract({ ...base, functionName: "potSpentPence", args: [potHash] }),
+      client.readContract({ ...base, functionName: "potBalancePence", args: [potHash] }),
+      client.readContract({ ...base, functionName: "balanceOf", args: [account.address] }),
+      client.readContract({ ...base, functionName: "settlementCount" }),
+      prisma.contractDeployment.findUnique({
+        where: { chain_name: { chain: ACTIVE_CHAIN, name: "SolacePound" } },
+      }),
+      prisma.household.findMany({
+        where: { role: HouseholdRole.RECIPIENT, recipientHash: { not: null } },
+        orderBy: { reference: "asc" },
+      }),
+    ]);
+
+    const credits: ChainCredit[] = [];
+    for (const household of households) {
+      const hash = household.recipientHash;
+      if (hash === null) continue;
+
+      const key = hash as `0x${string}`;
+      const [pence, milliKwh, count] = await Promise.all([
+        client.readContract({ ...base, functionName: "recipientReceivedPence", args: [key] }),
+        client.readContract({ ...base, functionName: "recipientMilliKwh", args: [key] }),
+        client.readContract({ ...base, functionName: "recipientSettlementCount", args: [key] }),
+      ]);
+
+      if (Number(pence) === 0) continue;
+
+      credits.push({
+        hash,
+        pencePaid: Number(pence),
+        kwh: round1(Number(milliKwh) / 1000),
+        settlements: Number(count),
+        locality: household.locality,
+      });
+    }
+
+    return {
+      contractAddress: address,
+      chain: ACTIVE_CHAIN,
+      explorerUrl: deployment?.explorerUrl ?? null,
+      tokenName,
+      tokenSymbol,
+      decimals: Number(decimals),
+      totalSupplyPence: Number(totalSupply),
+
+      potReferenceHash: potHash,
+      potFundedPence: Number(funded),
+      potSpentPence: Number(spent),
+      potRemainingPence: Number(remaining),
+
+      treasuryAddress: account.address,
+      treasuryBalancePence: Number(treasuryBalance),
+
+      credits: credits.sort((a, b) => b.pencePaid - a.pencePaid),
+      settlementCount: Number(settlementCount),
+    };
+  } catch {
+    // An unreachable chain is a fact to report, not an exception to throw.
+    return null;
+  }
 }
 
 // ---------------------------------------------------------------------------

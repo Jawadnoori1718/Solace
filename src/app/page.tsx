@@ -4,6 +4,7 @@ import { DepositControl } from "@/components/deposit-control";
 import { LiveExport } from "@/components/live-export";
 import { RunAllocation } from "@/components/run-allocation";
 import { BalanceChart } from "@/components/balance-chart";
+import { ChainLedgerPanel } from "@/components/chain-ledger";
 import { EnergyFlow } from "@/components/energy-flow";
 import { HealthBanner, LedgerAgreement } from "@/components/health-banner";
 import { HouseholdPanel } from "@/components/household-panel";
@@ -16,6 +17,7 @@ import { SolaceMark } from "@/components/brand";
 import { configurationWarnings } from "@/lib/config";
 import {
   getBalanceSeries,
+  getChainLedger,
   getEnergyFlowGraph,
   getHouseholds,
   getLatestRun,
@@ -58,6 +60,7 @@ export default async function Dashboard() {
     flow,
     liveExport,
     reportCount,
+    chainLedger,
   ] = await Promise.all([
     getRecentAllocations(12),
     getHouseholds(),
@@ -68,6 +71,7 @@ export default async function Dashboard() {
     getEnergyFlowGraph(),
     getLiveExport(),
     getReportCount(),
+    getChainLedger(),
   ]);
 
   const warnings = configurationWarnings();
@@ -117,6 +121,10 @@ export default async function Dashboard() {
             openingBalancePence={pot.balancePence}
             pendingCount={pendingCount}
           />
+        </div>
+
+        <div className="mt-8">
+          <ChainLedgerPanel ledger={chainLedger} />
         </div>
 
         <div className="mt-8 grid gap-8 lg:grid-cols-5">
