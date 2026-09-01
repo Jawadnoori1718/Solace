@@ -163,17 +163,27 @@ async function main(): Promise<void> {
     // Only a chain holding LESS than the ledger is a problem: it means money
     // the ledger records as committed is not there. A chain holding more is
     // ordinary — earlier runs of the demonstration are still on it.
+    // Three distinct cases, and conflating any two of them hides a real fault:
+    // the contract could not be read at all, the chain holds less than the
+    // ledger claims, or the chain holds at least as much.
+    const unreadable = onChain === null;
     const chainShort = onChain !== null && onChain < local;
 
     checks.push({
       name: "Ledger",
-      level: chainShort ? "blocked" : "ready",
-      detail: chainShort
-        ? `The database says ${formatPence(local)} but the chain holds only ${formatPence(onChain ?? 0)}. Money the ledger records is missing from the chain.`
-        : onChain === local
-          ? `The database and the chain both report ${formatPence(local)} remaining.`
-          : `The database reports ${formatPence(local)} for this run. The chain holds ${formatPence(onChain ?? 0)}, which includes earlier runs.`,
-      fix: chainShort ? "npm run demo:prepare" : undefined,
+      level: unreadable || chainShort ? "blocked" : "ready",
+      detail: unreadable
+        ? `The chain is reachable but the contract could not be read. It is not deployed at the recorded address — the chain was restarted.`
+        : chainShort
+          ? `The database says ${formatPence(local)} but the chain holds only ${formatPence(onChain)}. Money the ledger records is missing from the chain.`
+          : onChain === local
+            ? `The database and the chain both report ${formatPence(local)} remaining.`
+            : `The database reports ${formatPence(local)} for this run. The chain holds ${formatPence(onChain)}, which includes earlier runs.`,
+      fix: unreadable
+        ? "npm run deploy:local"
+        : chainShort
+          ? "npm run demo:prepare"
+          : undefined,
     });
 
     checks.push({

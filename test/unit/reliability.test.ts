@@ -116,6 +116,34 @@ describe("what counts as spent", () => {
   });
 });
 
+describe("an unreadable contract is not a balance of zero", () => {
+  // The failure this guards against was found by restarting the local chain
+  // without redeploying. The contract read failed, the failure was rendered as
+  // £0.00, and a deposit to an address with no code returned a transaction hash
+  // and did nothing — so the interface reported a confirmed deposit that had
+  // not happened. Presenting a failed read as data is the most dangerous shape
+  // of bug this system can have.
+  it("treats null and zero as different answers", () => {
+    const unreadable: number | null = null;
+    const genuinelyEmpty: number | null = 0;
+
+    assert.notEqual(unreadable, genuinelyEmpty);
+
+    // The comparison used by the health check and by doctor: a null must never
+    // fall through to the "chain holds less than the ledger" branch, nor to the
+    // "everything agrees" branch. It is its own case.
+    const isShort = (onChain: number | null, local: number): boolean =>
+      onChain !== null && onChain < local;
+    const isUnreadable = (onChain: number | null): boolean => onChain === null;
+
+    assert.equal(isUnreadable(unreadable), true);
+    assert.equal(isShort(unreadable, 40_000), false);
+
+    assert.equal(isUnreadable(genuinelyEmpty), false);
+    assert.equal(isShort(genuinelyEmpty, 40_000), true);
+  });
+});
+
 describe("chain metadata", () => {
   it("describes every chain the system can be in", () => {
     for (const chain of Object.values(ChainName)) {

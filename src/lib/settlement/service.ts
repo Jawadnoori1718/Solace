@@ -83,6 +83,31 @@ export async function resolveChainContext(): Promise<
     };
   }
 
+  // There must actually be a contract at the recorded address.
+  //
+  // A local chain forgets everything when it restarts, while the database keeps
+  // the deployment record. Sending a contract call to an address with no code
+  // does not revert — there is nothing there to revert — so the transaction
+  // "succeeds", returns a hash, and does absolutely nothing. The interface then
+  // reports a confirmed deposit that never happened, which is the single worst
+  // failure this system could have.
+  try {
+    const code = await publicClient().getCode({ address });
+    if (code === undefined || code === "0x") {
+      return {
+        ok: false,
+        reason:
+          `There is no contract at ${address} on ${ACTIVE_CHAIN}. The chain was restarted since it was deployed. ` +
+          `Run \`npm run deploy:local\` to put it back, then try again.`,
+      };
+    }
+  } catch {
+    return {
+      ok: false,
+      reason: `Could not check whether the contract is still deployed on ${ACTIVE_CHAIN}.`,
+    };
+  }
+
   return { ok: true, context: { address, chain: ACTIVE_CHAIN } };
 }
 

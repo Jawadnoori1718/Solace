@@ -424,6 +424,17 @@ export async function getSystemHealth(): Promise<SystemHealth> {
   let onChainBalancePence: number | null = null;
   if (chainReachable && contractDeployed) {
     onChainBalancePence = await onChainPotBalancePence(pot.reference);
+
+    // Reaching the node but failing to read the contract means the contract is
+    // not there — almost always because a local chain was restarted while the
+    // database kept the deployment record. That must never be reported as a
+    // balance of zero; an unreadable contract is a failure, not a figure.
+    if (onChainBalancePence === null) {
+      problems.push(
+        `The chain is running but there is no contract at ${deployment?.address ?? "the recorded address"}. ` +
+          `It was almost certainly restarted since deployment. Run \`npm run deploy:local\` to put it back — nothing has been lost.`,
+      );
+    }
   }
 
   // Only a chain holding LESS than the ledger claims is a discrepancy: it means

@@ -129,6 +129,20 @@ renders every figure, states that they come from the local ledger, and says
 settlement is paused until the chain returns. The settlement stream returns a
 readable error rather than hanging. No stack trace reaches the screen.
 
+### "There is no contract at 0x… The chain was restarted"
+
+The local chain was stopped and started again. It keeps no state between runs,
+so the contract is gone even though the database still records where it was.
+
+```bash
+npm run deploy:local
+```
+
+Deposits and settlements are refused until you do, deliberately: a contract call
+to an address with no code does not fail, it silently does nothing and returns a
+transaction hash. Reporting that as a confirmed deposit would be worse than any
+error message.
+
 ### "The chain reports 0 pence but the database recorded 40000"
 
 The local chain was restarted. It keeps no state between runs; the database
